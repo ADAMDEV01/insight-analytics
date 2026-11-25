@@ -22,7 +22,6 @@ export function ProjectManager() {
   const [selectedProject, setSelectedProject] = useState("");
 
   async function loadProjects() {
-    setLoading(true);
     try {
       const response = await fetch("/api/v1/projects");
       const body = await response.json();
@@ -38,7 +37,7 @@ export function ProjectManager() {
   }
 
   async function loadKeys(projectId: string) {
-    if (!projectId) { setKeys([]); return; }
+    if (!projectId) return;
     try {
       const response = await fetch("/api/v1/api-keys?projectId=" + encodeURIComponent(projectId));
       const body = await response.json();
@@ -121,7 +120,7 @@ export function ProjectManager() {
         <Card className="p-5">
           <div className="mb-5 flex items-center justify-between">
             <div><h2 className="text-sm font-semibold">Your projects</h2><p className="mt-1 text-xs text-muted">Projects belong to your current workspace.</p></div>
-            <button onClick={() => void loadProjects()} className="text-muted" aria-label="Refresh projects"><RefreshCw size={15} /></button>
+            <button onClick={() => { setLoading(true); void loadProjects(); }} className="text-muted" aria-label="Refresh projects"><RefreshCw size={15} /></button>
           </div>
           {loading ? <div className="space-y-3">{[1,2].map((item) => <div key={item} className="h-16 animate-pulse rounded-xl bg-panel-raised" />)}</div> : (
             <div className="space-y-2">
@@ -149,7 +148,7 @@ export function ProjectManager() {
             <div><h2 className="text-sm font-semibold">Publishable keys</h2><p className="mt-1 text-xs text-muted">Keys used by your website SDK.</p></div>
           </div>
           <label className="mb-2 block text-xs font-medium text-muted">Project</label>
-          <select value={selectedProject} onChange={(event) => { setSelectedProject(event.target.value); setApiKey(""); }} className="surface-raised mb-4 h-10 w-full rounded-xl px-3 text-sm">
+          <select value={selectedProject} onChange={(event) => { setSelectedProject(event.target.value); setApiKey(""); setKeys([]); }} className="surface-raised mb-4 h-10 w-full rounded-xl px-3 text-sm">
             {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
           </select>
           <label className="mb-2 block text-xs font-medium text-muted">Key label</label>
