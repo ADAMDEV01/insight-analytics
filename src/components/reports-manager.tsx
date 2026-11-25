@@ -18,19 +18,30 @@ export function ReportsManager() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let active = true;
     fetch("/api/v1/projects")
       .then(async (response) => {
         const body = await response.json();
         if (!response.ok) throw new Error(body.error?.message || "Projects could not be loaded.");
-        const list = body.data.projects as Project[];
+        return body.data.projects as Project[];
+      })
+      .then((list) => {
+        if (!active) return;
         setProjects(list);
         if (list[0]) setProjectId(list[0].id);
+        else setLoading(false);
       })
-      .catch((error: unknown) => toast.error(error instanceof Error ? error.message : "Projects could not be loaded."));
+      .catch((error: unknown) => {
+        if (active) {
+          toast.error(error instanceof Error ? error.message : "Projects could not be loaded.");
+          setLoading(false);
+        }
+      });
+    return () => { active = false; };
   }, []);
 
   async function load(id: string) {
-    if (!id) return;
+    setLoading(true);
     try {
       const response = await fetch("/api/v1/reports?projectId=" + encodeURIComponent(id));
       const body = await response.json();
@@ -43,7 +54,29 @@ export function ReportsManager() {
     }
   }
 
-  useEffect(() => { void load(projectId); }, [projectId]);
+  useEffect(() => {
+    if (!projectId) return;
+    let active = true;
+    fetch("/api/v1/reports?projectId=" + encodeURIComponent(projectId))
+      .then(async (response) => {
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error?.message || "Reports could not be loaded.");
+        return body.data.reports as Report[];
+      })
+      .then((data) => {
+        if (active) {
+          setReports(data);
+          setLoading(false);
+        }
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          toast.error(error instanceof Error ? error.message : "Reports could not be loaded.");
+          setLoading(false);
+        }
+      });
+    return () => { active = false; };
+  }, [projectId]);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -62,7 +95,6 @@ export function ReportsManager() {
       toast.success("Report saved.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Report could not be saved.");
-    } finally {
       setLoading(false);
     }
   }
@@ -75,7 +107,7 @@ export function ReportsManager() {
           <div className="mb-5 flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-accent-soft text-accent"><Save size={18} /></span><div><h2 className="text-sm font-semibold">Save a report</h2><p className="mt-1 text-xs text-muted">Reports are persisted in your workspace.</p></div></div>
           <form onSubmit={save} className="space-y-3">
             <label className="block text-xs font-medium text-muted">Project</label>
-            <select value={projectId} onChange={(event) => setProjectId(event.target.value)} className="surface-raised h-10 w-full rounded-xl px-3 text-sm">{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select>
+            <select value={projectId} onChange={(event) => { setLoading(true); setProjectId(event.target.value); }} className="surface-raised h-10 w-full rounded-xl px-3 text-sm">{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select>
             <label className="block text-xs font-medium text-muted">Report name</label>
             <input required minLength={2} maxLength={80} value={name} onChange={(event) => setName(event.target.value)} className="surface-raised h-10 w-full rounded-xl px-3 text-sm outline-none" placeholder="Weekly activation review" />
             <label className="block text-xs font-medium text-muted">Description</label>
