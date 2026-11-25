@@ -6,7 +6,7 @@ import { getProjectAccess } from "@/lib/permissions";
 import { computeFunnel } from "@/features/analytics/funnel";
 import { isIsoDateString } from "@/lib/analytics";
 
-const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const dateSchema = z.string().refine(isIsoDateString, "Dates must be valid YYYY-MM-DD values.");
 const schema = z.object({
   projectId: z.string().uuid(),
   steps: z.array(z.string().trim().min(1).max(120)).min(2).max(8),
