@@ -18,10 +18,10 @@ INSIGHT is a full-stack product analytics platform focused on a premium, respons
 - Password registration, sign-in, sign-out, and persistent sessions
 - Automatically provisioned personal workspace and initial project
 - Workspace membership roles: owner, admin, analyst, viewer
-- Project creation and one-time display of publishable ingestion keys
+- Project creation, key listing, one-time display, and immediate key revocation
 - Batch event ingestion with schema validation, origin allowlists, request rate limits, and idempotency
 - Transactional outbox processing using PostgreSQL row locks, per-event savepoints, bounded retries, and terminal failure state
-- Event explorer with search and pagination
+- Event explorer with search, pagination, and CSV export (10,000-row cap)
 - Persisted daily event counts, per-event unique users, and project-wide active users
 - Overview metrics and trends, ordered conversion funnels, retention cohorts, and saved report definitions
 - Browser SDK package under packages/sdk

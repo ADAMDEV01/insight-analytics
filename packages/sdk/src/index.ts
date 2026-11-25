@@ -61,7 +61,15 @@ export function createInsight(options: InsightOptions): InsightClient {
 
   function track(eventName: string, properties: Record<string, unknown> = {}) {
     if (!/^[a-zA-Z0-9_.:-]{1,120}$/.test(eventName)) throw new Error("Invalid INSIGHT event name.");
-    queue.push({ eventName, distinctId, sessionId, properties, timestamp: new Date().toISOString(), idempotencyKey: globalThis.crypto?.randomUUID?.() || (Date.now().toString(36) + Math.random().toString(36).slice(2)) });
+    let safeProperties: Record<string, unknown>;
+    try {
+      const serialized = JSON.stringify(properties);
+      if (serialized === undefined || serialized.length > 20000) throw new Error("Event properties exceed the 20 KB limit.");
+      safeProperties = JSON.parse(serialized) as Record<string, unknown>;
+    } catch {
+      throw new Error("Event properties must be a JSON-serializable object under 20 KB.");
+    }
+    queue.push({ eventName, distinctId, sessionId, properties: safeProperties, timestamp: new Date().toISOString(), idempotencyKey: globalThis.crypto?.randomUUID?.() || (Date.now().toString(36) + Math.random().toString(36).slice(2)) });
     if (queue.length >= flushAt) void flush().catch(() => undefined);
   }
 
