@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   );
   const map = new Map<string, { cohortDate: string; cohortSize: number; retention: Record<string, number | null> }>();
   for (const row of result.rows) {
-    const cohort = map.get(row.cohort_date) || { cohortDate: row.cohort_date, cohortSize: row.cohort_size, retention: {} };
+    const cohort: { cohortDate: string; cohortSize: number; retention: Record<string, number | null> } = map.get(row.cohort_date) || { cohortDate: row.cohort_date, cohortSize: row.cohort_size, retention: {} };
     cohort.retention[String(row.day_offset)] = row.cohort_date && new Date(row.cohort_date + "T00:00:00Z").getTime() + row.day_offset * 86400000 <= Date.now() ? (row.cohort_size ? Number(((row.retained / row.cohort_size) * 100).toFixed(1)) : 0) : null;
     map.set(row.cohort_date, cohort);
   }
