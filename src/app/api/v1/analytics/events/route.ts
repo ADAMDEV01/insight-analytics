@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
   const [rows, count] = await Promise.all([
     pool.query(
-      "SELECT id, event_name AS \\"eventName\\", distinct_id AS \\"distinctId\\", session_id AS \\"sessionId\\", occurred_at AS \\"occurredAt\\", properties FROM events WHERE project_id=$1 AND ($2::text IS NULL OR event_name ILIKE $2 OR distinct_id ILIKE $2) ORDER BY occurred_at DESC, id DESC LIMIT $3 OFFSET $4",
+      `SELECT id, event_name AS "eventName", distinct_id AS "distinctId", session_id AS "sessionId", occurred_at AS "occurredAt", properties FROM events WHERE project_id=$1 AND ($2::text IS NULL OR event_name ILIKE $2 OR distinct_id ILIKE $2) ORDER BY occurred_at DESC, id DESC LIMIT $3 OFFSET $4`,
       [projectId, pattern, limit, offset],
     ),
     pool.query(
