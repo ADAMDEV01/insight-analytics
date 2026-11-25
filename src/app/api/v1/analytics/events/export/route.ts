@@ -23,8 +23,7 @@ export async function GET(request: Request) {
 
   const from = params.get("from");
   const to = params.get("to");
-  const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-  if ((from && !datePattern.test(from)) || (to && !datePattern.test(to))) {
+  if ((from && !isIsoDateString(from)) || (to && !isIsoDateString(to))) {
     return apiError("Dates must be valid YYYY-MM-DD values.", 422, "VALIDATION_ERROR");
   }
   if (from && to && from > to) return apiError("The start date must be before the end date.", 422, "VALIDATION_ERROR");
