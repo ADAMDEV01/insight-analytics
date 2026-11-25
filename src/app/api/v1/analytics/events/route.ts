@@ -13,10 +13,10 @@ export async function GET(request: Request) {
   const limit = Math.min(100, Math.max(1, Number(params.get("limit") || 25)));
   const offset = Math.min(100000, Math.max(0, Number(params.get("offset") || 0)));
   const search = (params.get("search") || "").trim().slice(0, 100);
-  const pattern = search ? "%" + search.replace(/[\\%_]/g, "\\$&") + "%" : null;
+  const pattern = search ? "%" + search + "%" : null;
   const [rows, count] = await Promise.all([
-    pool.query("SELECT id, event_name AS \"eventName\", distinct_id AS \"distinctId\", session_id AS \"sessionId\", occurred_at AS \"occurredAt\", properties FROM events WHERE project_id=$1 AND ($2::text IS NULL OR event_name ILIKE $2 ESCAPE '\\\\' OR distinct_id ILIKE $2 ESCAPE '\\\\') ORDER BY occurred_at DESC, id DESC LIMIT $3 OFFSET $4", [projectId, pattern, limit, offset]),
-    pool.query("SELECT COUNT(*)::int AS total FROM events WHERE project_id=$1 AND ($2::text IS NULL OR event_name ILIKE $2 ESCAPE '\\\\' OR distinct_id ILIKE $2 ESCAPE '\\\\')", [projectId, pattern]),
+    pool.query("SELECT id, event_name AS \"eventName\", distinct_id AS \"distinctId\", session_id AS \"sessionId\", occurred_at AS \"occurredAt\", properties FROM events WHERE project_id=$1 AND ($2::text IS NULL OR event_name ILIKE $2 OR distinct_id ILIKE $2) ORDER BY occurred_at DESC, id DESC LIMIT $3 OFFSET $4", [projectId, pattern, limit, offset]),
+    pool.query("SELECT COUNT(*)::int AS total FROM events WHERE project_id=$1 AND ($2::text IS NULL OR event_name ILIKE $2 OR distinct_id ILIKE $2)", [projectId, pattern]),
   ]);
   return apiSuccess({ events: rows.rows, total: count.rows[0]?.total || 0, limit, offset });
 }

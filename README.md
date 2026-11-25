@@ -1,124 +1,125 @@
 # INSIGHT — Product Analytics Platform
 
-INSIGHT is a full-stack product analytics platform built to demonstrate production-oriented frontend engineering and backend fundamentals. It provides workspace-scoped projects, publishable ingestion keys, event ingestion, asynchronous aggregation, and analytics views.
+INSIGHT is a full-stack product analytics platform focused on a premium, responsive analytics experience backed by real PostgreSQL persistence. It includes workspace-scoped projects, publishable ingestion keys, event ingestion, an outbox processor, analytics endpoints, and a browser SDK.
 
-> **Status:** foundation implementation. Deployment and external integrations require owner-provided environment variables. Do not describe the app as production-verified until the checks in this README have been run against a configured database and deployment.
-
-## Product goals
-
-- Premium, responsive analytics workspace with accessible interactions.
-- Real PostgreSQL persistence; no runtime localStorage data model or random dashboard metrics.
-- Multi-tenant workspace membership and role-based authorization.
-- Password authentication and persistent sessions with Better Auth.
-- Publishable project keys, validated batch event ingestion, idempotency, and database-backed rate limiting.
-- Transactional outbox and retryable aggregation into daily rollups.
-- Server-side analytics queries for overview, events, funnels, and retention.
-- Reproducible migrations, automated tests, CI, and deployment documentation.
+**Verification status:** code is committed, but external database provisioning, migration execution, browser-based local verification, and Vercel deployment still need to be completed with owner credentials. Do not describe these as complete until verified.
 
 ## Stack
 
-- Next.js 16 App Router, React 19, TypeScript strict mode
-- Tailwind CSS 4, accessible UI primitives, Lucide, Recharts
-- Better Auth with the Drizzle PostgreSQL adapter
-- Drizzle ORM and Neon PostgreSQL
-- Zod, Vitest, Testing Library, Playwright
-- Vercel deployment; Vercel Cron invokes the bounded outbox processor
+- Next.js 16.4.6, React 19.3.1, TypeScript strict mode
+- Tailwind CSS 4, Lucide, Recharts, accessible component primitives
+- Better Auth with Drizzle PostgreSQL adapter
+- Drizzle ORM, node-postgres, Neon PostgreSQL
+- Zod validation, Vitest, Playwright
+- Vercel deployment with a scheduled, bounded outbox processor
+
+## Features
+
+- Password registration, sign-in, sign-out, and persistent sessions
+- Automatically provisioned personal workspace and initial project
+- Workspace membership roles: owner, admin, analyst, viewer
+- Project creation and one-time display of publishable ingestion keys
+- Batch event ingestion with schema validation, origin allowlists, request rate limits, and idempotency
+- Transactional outbox processing using PostgreSQL row locks, per-event savepoints, bounded retries, and terminal failure state
+- Event explorer with search and pagination
+- Persisted daily event counts, per-event unique users, and project-wide active users
+- Overview metrics and trends, ordered conversion funnels, retention cohorts, and saved report definitions
+- Browser SDK package under packages/sdk
+- Responsive shell, dark/light theme, keyboard command navigation, and clear empty/loading/error states
 
 ## Architecture
 
-The application is a modular monolith. Next.js Route Handlers are the authenticated application API and ingestion endpoint. PostgreSQL is the source of truth. Ingestion writes raw events and outbox records in one transaction. A separately authenticated cron route claims outbox records with PostgreSQL row locks (SKIP LOCKED), updates aggregate tables, and records retries. Analytics pages read persisted data through server routes.
+This is a modular monolith. Next.js Route Handlers are the application API. PostgreSQL is the source of truth. Event ingestion writes the raw event and its outbox record in one transaction. Vercel Cron invokes /api/cron/process-events every five minutes; the processor uses FOR UPDATE SKIP LOCKED and per-event savepoints so overlapping invocations do not double-claim a row. Analytics pages consume persisted data through authenticated endpoints.
 
-This avoids a fragile in-memory worker in serverless environments. The cron endpoint is bounded and safe for overlapping invocations; configure a Vercel Cron schedule for /api/cron/process-events.
+See docs/ARCHITECTURE.md, docs/PRODUCT.md, and docs/SECURITY.md.
 
-## Local development
+## Requirements and setup
 
-Requirements: Node.js 22.12+ and PostgreSQL 16+ (Neon works).
+Requirements: Node.js 22.12+ and PostgreSQL 16+ (Neon is supported).
 
-1. Install dependencies: npm install
-2. Copy .env.example to .env.local and fill in the values.
-3. Generate migrations: npm run db:generate
-4. Apply migrations using a **direct, non-pooled** MIGRATION_DATABASE_URL: npm run db:migrate
-5. Start the app: npm run dev
+1. Run npm install.
+2. Copy .env.example to .env.local.
+3. Set DATABASE_URL to a pooled PostgreSQL URL for application traffic.
+4. Set MIGRATION_DATABASE_URL to a direct, non-pooled PostgreSQL URL for schema migrations.
+5. Configure BETTER_AUTH_SECRET (32+ characters), BETTER_AUTH_URL, NEXT_PUBLIC_APP_URL, and CRON_SECRET.
+6. Run npm run db:migrate.
+7. Run npm run dev.
 
-DATABASE_URL should be the pooled Neon connection string for runtime traffic. MIGRATION_DATABASE_URL should be the direct connection string for schema migrations. Never commit secrets.
+Never commit .env.local or print secret values in CI logs.
 
 ## Environment variables
 
-| Variable | Required | Purpose |
-|---|---:|---|
-| DATABASE_URL | Yes | Pooled PostgreSQL URL for application queries |
-| MIGRATION_DATABASE_URL | Yes for migrations | Direct PostgreSQL URL |
-| BETTER_AUTH_SECRET | Yes | High-entropy auth signing secret (32+ characters) |
-| BETTER_AUTH_URL | Yes | Canonical app origin, e.g. http://localhost:3000 |
-| NEXT_PUBLIC_APP_URL | Yes | Browser-visible canonical app origin |
-| CRON_SECRET | Yes in production | Bearer secret protecting the event processor |
-| INGEST_RATE_LIMIT_PER_MINUTE | No | Per-key ingestion limit; defaults to 300 |
+| Variable | Purpose |
+|---|---|
+| DATABASE_URL | Pooled Postgres connection used by app runtime |
+| MIGRATION_DATABASE_URL | Direct Postgres connection used by migration runner |
+| BETTER_AUTH_SECRET | Better Auth signing secret, at least 32 characters |
+| BETTER_AUTH_URL | Canonical server auth URL |
+| NEXT_PUBLIC_APP_URL | Browser-visible application origin |
+| CRON_SECRET | Bearer secret protecting cron processor |
+| INGEST_RATE_LIMIT_PER_MINUTE | Optional per-key request limit; defaults to 300 |
 
-## Scripts
+## Commands
 
-- npm run dev — local development
+- npm run dev — development server
 - npm run build — production build
 - npm run lint — ESLint
-- npm run typecheck — strict TypeScript check
+- npm run typecheck — TypeScript strict check
 - npm run test — unit tests
-- npm run test:e2e — Playwright browser tests
-- npm run db:generate — generate SQL migrations
-- npm run db:migrate — apply SQL migrations
+- npm run test:e2e — Playwright smoke tests
+- npm run db:migrate — apply ordered SQL migrations from db/migrations
 - npm run db:studio — Drizzle Studio
 
-## API overview
+New schema changes should be added as the next ordered SQL file in db/migrations. The migration runner records applied filenames in insight_schema_migrations and serializes concurrent migration runs with a PostgreSQL advisory lock.
+
+## API
 
 - /api/auth/[...all] — Better Auth endpoints
-- POST /api/v1/ingest — ingest a batch with Authorization: Bearer ia_pub_...
-- GET /api/v1/analytics/overview?projectId=...
-- GET /api/v1/analytics/events?projectId=...
-- POST /api/v1/analytics/funnels
-- GET /api/v1/analytics/retention?projectId=...
-- GET|POST /api/v1/projects?workspaceId=...
-- POST /api/v1/api-keys
-- POST /api/cron/process-events — protected outbox processor
+- GET|POST /api/v1/projects — list and create workspace projects
+- GET|POST /api/v1/api-keys — list metadata and create a publishable key
+- POST /api/v1/ingest — ingest up to 100 validated events per request
+- GET /api/v1/analytics/overview?projectId=...&days=30
+- GET /api/v1/analytics/events?projectId=...&limit=25&offset=0&search=...
+- POST /api/v1/analytics/funnels — ordered event funnel calculation
+- GET /api/v1/analytics/retention?projectId=...&days=30
+- GET|POST /api/v1/reports — list and save named report definitions
+- GET|POST /api/cron/process-events — protected outbox processor
 
-Every project-scoped endpoint must verify workspace membership server-side. Client-side route visibility is not an authorization boundary.
+Every project-specific endpoint checks authenticated workspace membership server-side. UI route visibility is not an authorization boundary.
 
-## Event ingestion
+## Browser SDK
 
-The browser SDK sends eventName, distinctId, optional sessionId, JSON properties, an ISO timestamp, and a client-generated idempotency key. The server validates payload size and shape, resolves the publishable key by hash, enforces a database-backed rate limit, and inserts events idempotently. The SDK key is intentionally **publishable**, not a secret; restrict production use with allowed origins and rotate it if abused.
+See packages/sdk/README.md. Build the SDK package with npm install and npm run build from packages/sdk. The publishable key is intentionally public and must not be treated as a server secret. Do not send sensitive personal data in event properties.
 
-The event processor updates daily event counts, per-event unique users, and project-wide daily active users. Events remain available for detailed exploration even after aggregation.
+## Deploying
 
-## Security notes
-
-- Never expose DATABASE_URL, BETTER_AUTH_SECRET, or CRON_SECRET to the browser.
-- API keys are stored as SHA-256 hashes; the full key is returned once at creation.
-- Verify membership and role on every protected server operation.
-- Use HTTPS in production and set the production auth URL correctly.
-- Apply migrations through versioned SQL files; do not use schema push in production.
-- Review retention, privacy, deletion, and legal requirements before using real customer data.
-
-## Deployment
-
-1. Create a Neon PostgreSQL project and configure pooled DATABASE_URL plus direct MIGRATION_DATABASE_URL.
-2. Set BETTER_AUTH_SECRET, BETTER_AUTH_URL, NEXT_PUBLIC_APP_URL, and CRON_SECRET in Vercel.
-3. Run npm run db:generate and npm run db:migrate against the target database.
-4. Deploy the project to Vercel.
-5. Add the Cron schedule in vercel.json; verify the function can reach Neon and the cron secret matches.
-6. Complete the smoke-test checklist below.
+1. Provision Neon Postgres in a region supported by your Vercel app and obtain pooled and direct connection strings.
+2. Add the variables above to Vercel Production and Preview environments.
+3. Apply SQL migrations to the target database using MIGRATION_DATABASE_URL before serving traffic.
+4. Deploy the repository to Vercel.
+5. Confirm the Vercel Cron schedule is active and CRON_SECRET matches the deployed environment.
+6. Create a project key, send test events, wait for processing, then verify the Events and Overview pages.
 
 ## Verification checklist
 
-- [ ] Install completes with the committed lockfile.
-- [ ] Migrations apply to a clean PostgreSQL database.
-- [ ] Sign-up, sign-in, sign-out, and session restoration work.
-- [ ] An unauthenticated request cannot access workspace data.
-- [ ] A member cannot read or mutate another workspace's resources.
-- [ ] A viewer cannot create keys or mutate workspace settings.
-- [ ] Ingestion rejects invalid keys, oversized batches, invalid payloads, and rate-limit overflow.
-- [ ] Duplicate idempotency keys do not create duplicate events.
-- [ ] Overlapping cron invocations do not process an event twice.
-- [ ] Failed outbox records retry with backoff and become inspectable after the retry limit.
-- [ ] Overview, event explorer, funnels, and retention values are derived from persisted events.
-- [ ] Keyboard, mobile, accessibility, and browser E2E checks pass.
-- [ ] Vercel deployment and scheduled processing are verified against the production database.
+- [ ] npm install completes and the dependency tree is stable
+- [ ] npm run lint, npm run typecheck, and npm run test pass
+- [ ] npm run build completes with environment values configured
+- [ ] npm run test:e2e passes in a browser
+- [ ] Migrations apply to a clean Postgres database
+- [ ] Sign-up/sign-in/sign-out and session restoration work
+- [ ] Cross-workspace access is denied by server-side membership checks
+- [ ] Non-admin key creation and project creation are denied
+- [ ] Invalid key, invalid origin, oversized batch, malformed event, and rate limit are handled
+- [ ] Duplicate idempotency keys do not duplicate raw events
+- [ ] Concurrent cron invocations do not process the same event twice
+- [ ] Retry and terminal failure behavior is verified
+- [ ] All analytics are derived from persisted events and aggregates
+- [ ] Vercel deployment, database connection, and cron schedule are verified
+
+## Known scope boundaries
+
+Workspace invitations, billing, scheduled exports, data deletion workflows, warehouse connectors, SSO/MFA, and production alerting are not included in this initial implementation. Review legal/privacy requirements, consent, access policies, and retention before ingesting real customer data.
 
 ## License
 

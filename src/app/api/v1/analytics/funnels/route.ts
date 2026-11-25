@@ -5,7 +5,8 @@ import { getRequiredSession } from "@/lib/session";
 import { getProjectAccess } from "@/lib/permissions";
 import { computeFunnel } from "@/features/analytics/funnel";
 
-const schema = z.object({ projectId: z.string().uuid(), steps: z.array(z.string().trim().min(1).max(120)).min(2).max(8), from: z.string().date().optional(), to: z.string().date().optional() });
+const dateSchema = z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/);
+const schema = z.object({ projectId: z.string().uuid(), steps: z.array(z.string().trim().min(1).max(120)).min(2).max(8), from: dateSchema.optional(), to: dateSchema.optional() });
 export async function POST(request: Request) {
   const session = await getRequiredSession(request);
   if (!session) return apiError("Sign in to analyze funnels.", 401, "UNAUTHORIZED");
