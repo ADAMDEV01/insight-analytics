@@ -19,18 +19,20 @@ export function OverviewDashboard() {
   const [projectId, setProjectId] = useState("");
   const [days, setDays] = useState(30);
   const [data, setData] = useState<Overview | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadedKey, setLoadedKey] = useState("");
   const [error, setError] = useState("");
   useEffect(() => { fetch("/api/v1/projects").then((r) => r.json()).then((r) => { const list = r.data?.projects ?? []; setProjects(list); if (list[0]) setProjectId(list[0].id); }).catch(() => setError("Projects could not be loaded.")); }, []);
+  const requestKey = projectId ? `${projectId}:${days}` : "";
+  const loading = Boolean(requestKey) && loadedKey !== requestKey;
+
   useEffect(() => {
     if (!projectId) return;
     let active = true;
-    setLoading(true);
+    const currentRequestKey = `${projectId}:${days}`;
     fetch("/api/v1/analytics/overview?projectId=" + encodeURIComponent(projectId) + "&days=" + days)
       .then(async (r) => { const payload = await r.json(); if (!r.ok) throw new Error(payload.error?.message || "Analytics could not be loaded."); return payload.data as Overview; })
-      .then((payload) => { if (active) { setData(payload); setError(""); } })
-      .catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : "Analytics could not be loaded."); })
-      .finally(() => { if (active) setLoading(false); });
+      .then((payload) => { if (active) { setData(payload); setError(""); setLoadedKey(currentRequestKey); } })
+      .catch((reason: unknown) => { if (active) { setError(reason instanceof Error ? reason.message : "Analytics could not be loaded."); setLoadedKey(currentRequestKey); } });
     return () => { active = false; };
   }, [projectId, days]);
   const metrics = useMemo(() => {
