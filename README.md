@@ -29,7 +29,7 @@ INSIGHT is a full-stack product analytics platform focused on a premium, respons
 
 ## Architecture
 
-This is a modular monolith. Next.js Route Handlers are the application API. PostgreSQL is the source of truth. Event ingestion writes the raw event and its outbox record in one transaction. Vercel Cron invokes /api/cron/process-events every five minutes; the processor uses FOR UPDATE SKIP LOCKED and per-event savepoints so overlapping invocations do not double-claim a row. Analytics pages consume persisted data through authenticated endpoints.
+This is a modular monolith. Next.js Route Handlers are the application API. PostgreSQL is the source of truth. Event ingestion writes raw events and outbox records in one transaction, then schedules a bounded Next.js after() processing pass. Vercel Cron invokes /api/cron/process-events as a reconciliation fallback; the processor uses FOR UPDATE SKIP LOCKED and per-event savepoints so overlapping invocations do not double-claim a row. Analytics pages consume persisted data through authenticated endpoints.
 
 See docs/ARCHITECTURE.md, docs/PRODUCT.md, and docs/SECURITY.md.
 
@@ -86,6 +86,8 @@ New schema changes should be added as the next ordered SQL file in db/migrations
 - GET /api/v1/analytics/retention?projectId=...&days=30
 - GET|POST /api/v1/reports — list and save named report definitions
 - GET|POST /api/cron/process-events — protected outbox processor
+- GET /api/health — database connectivity health check
+- GET /api/v1/analytics/events/export?projectId=... — authenticated CSV export (10,000-row cap)
 
 Every project-specific endpoint checks authenticated workspace membership server-side. UI route visibility is not an authorization boundary.
 
