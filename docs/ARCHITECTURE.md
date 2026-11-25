@@ -27,7 +27,7 @@ Workspaces contain members and projects. Every project-scoped API route resolves
 
 ## Operational safeguards
 
-Use a pooled DATABASE_URL for application queries and a direct MIGRATION_DATABASE_URL for schema changes. Cron requests require CRON_SECRET. The processor claims a bounded batch and uses row locks so concurrent invocations do not claim the same job. No in-memory queue is treated as durable state.
+Use a pooled DATABASE_URL for application queries and a direct MIGRATION_DATABASE_URL for schema changes. Cron requests require CRON_SECRET. The processor claims a bounded batch and uses row locks so concurrent invocations do not claim the same job. Next.js after() gives newly ingested events a low-latency processing attempt; the persisted outbox remains the recovery source of truth. The committed Vercel Hobby schedule is daily; Pro deployments can increase it to every five minutes. No in-memory queue is treated as durable state.
 
 ## Known boundaries
 
