@@ -5,7 +5,7 @@ import { processOutboxBatch } from "@/lib/process-outbox";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-async function process(request: Request) {
+async function handleCron(request: Request) {
   const secret = process.env.CRON_SECRET;
   const authorization = request.headers.get("authorization") || "";
   if (!secret || !verifySecret(secret, authorization.replace(/^Bearer /, ""))) {
@@ -26,5 +26,5 @@ async function process(request: Request) {
   }
 }
 
-export const GET = process;
-export const POST = process;
+export const GET = handleCron;
+export const POST = handleCron;
