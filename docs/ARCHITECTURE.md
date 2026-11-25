@@ -9,7 +9,7 @@ The web application is a modular monolith on Next.js App Router. Server componen
 1. Browser SDK creates a stable per-event idempotency key and batches events.
 2. POST /api/v1/ingest validates payload size, field shape, key hash, origin policy, and a database-backed per-minute request bucket.
 3. One database transaction inserts the raw events and outbox records. Unique (project_id, idempotency_key) prevents duplicates.
-4. Vercel Cron calls the protected processor route. It selects pending rows with FOR UPDATE SKIP LOCKED, uses a savepoint per event, and applies raw-event-derived daily aggregates.
+4. Next.js `after()` schedules a small best-effort batch after the ingestion response. Vercel Cron calls the protected processor route as durable recovery and reconciliation. The shared processor selects pending rows with FOR UPDATE SKIP LOCKED, uses a savepoint per event, and applies raw-event-derived daily aggregates.
 5. Failed events receive bounded exponential retry delay and become inspectable as terminal failures after eight attempts.
 6. Analytics routes read aggregates and raw events; the browser never calculates tenant authorization.
 

@@ -1,10 +1,18 @@
 export function normalizeDateRange(days: number) {
-  const safeDays = Math.min(90, Math.max(1, Math.floor(days)));
+  const requested = Number.isFinite(days) ? Math.floor(days) : 30;
+  const safeDays = Math.min(90, Math.max(1, requested));
   const to = new Date();
   const from = new Date(to);
   from.setUTCDate(from.getUTCDate() - (safeDays - 1));
-  return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10), days: safeDays };
+  return {
+    from: from.toISOString().slice(0, 10),
+    to: to.toISOString().slice(0, 10),
+    days: safeDays,
+  };
 }
+
 export function toIsoDay(value: Date | string) {
-  return new Date(value).toISOString().slice(0, 10);
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) throw new Error("Invalid date.");
+  return date.toISOString().slice(0, 10);
 }

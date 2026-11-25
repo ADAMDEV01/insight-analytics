@@ -11,7 +11,8 @@ export async function GET(request: Request) {
   const projectId = params.get("projectId");
   if (!projectId) return apiError("projectId is required.");
   if (!(await getProjectAccess(session.user.id, projectId))) return apiError("Project not found.", 404, "NOT_FOUND");
-  const range = normalizeDateRange(Number(params.get("days") || 30));
+  const requestedDays = params.has("days") ? Number(params.get("days")) : 30;
+  const range = normalizeDateRange(requestedDays);
   const result = await pool.query(
     "WITH first_seen AS (SELECT distinct_id, MIN(occurred_at::date) AS cohort_date FROM events WHERE project_id=$1 GROUP BY distinct_id), cohort_users AS (SELECT distinct_id, cohort_date FROM first_seen WHERE cohort_date BETWEEN $2::date AND $3::date), offsets AS (SELECT UNNEST(ARRAY[0,1,7,14,30])::int AS day_offset), activity AS (SELECT DISTINCT distinct_id, occurred_at::date AS active_date FROM events WHERE project_id=$1 AND occurred_at::date BETWEEN $2::date AND CURRENT_DATE) SELECT cu.cohort_date::text AS cohort_date, o.day_offset, COUNT(DISTINCT cu.distinct_id)::int AS cohort_size, COUNT(DISTINCT a.distinct_id)::int AS retained FROM cohort_users cu CROSS JOIN offsets o LEFT JOIN activity a ON a.distinct_id=cu.distinct_id AND a.active_date=cu.cohort_date+o.day_offset AND cu.cohort_date+o.day_offset<=CURRENT_DATE GROUP BY cu.cohort_date,o.day_offset ORDER BY cu.cohort_date DESC,o.day_offset",
     [projectId, range.from, range.to],

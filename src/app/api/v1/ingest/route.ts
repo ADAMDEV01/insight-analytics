@@ -5,6 +5,9 @@ import { apiKeys } from "@/db/schema";
 import { apiError, apiSuccess } from "@/lib/http";
 import { hashApiKey } from "@/lib/crypto";
 import { persistEventBatch } from "@/lib/ingestion";
+import { processOutboxBatch } from "@/lib/process-outbox";
+
+export const runtime = "nodejs";
 
 const eventSchema = z.object({
   eventName: z.string().trim().min(1).max(120).regex(/^[a-zA-Z0-9_.:-]+$/),
@@ -38,6 +41,10 @@ export async function POST(request: Request) {
     const match = authorization.match(/^Bearer (ia_pub_[A-Za-z0-9_-]{32,})$/);
     if (!match) return cors(apiError("A valid publishable key is required.", 401, "INVALID_KEY"), origin);
 
+    const contentLength = Number(request.headers.get("content-length") || 0);
+    if (Number.isFinite(contentLength) && contentLength > 256000) {
+      return cors(apiError("Payload exceeds the 256 KB limit.", 413, "PAYLOAD_TOO_LARGE"), origin);
+    }
     const text = await request.text();
     if (Buffer.byteLength(text, "utf8") > 256000) return cors(apiError("Payload exceeds the 256 KB limit.", 413, "PAYLOAD_TOO_LARGE"), origin);
 
@@ -70,6 +77,15 @@ export async function POST(request: Request) {
 
     const result = await persistEventBatch(key.projectId, parsed.data.events);
     await db.update(apiKeys).set({ lastUsedAt: new Date() }).where(eq(apiKeys.id, key.id));
+    if (result.accepted > 0) {
+      after(async () => {
+        try {
+          await processOutboxBatch(50);
+        } catch (error) {
+          console.error("INSIGHT background event processing failed", error);
+        }
+      });
+    }
     return cors(apiSuccess({ projectId: key.projectId, ...result, received: parsed.data.events.length }, 202), origin);
   } catch {
     return cors(apiError("Event ingestion is temporarily unavailable.", 500, "INGESTION_FAILED"), origin);

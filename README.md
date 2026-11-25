@@ -99,7 +99,7 @@ See packages/sdk/README.md. Build the SDK package by running npm install and npm
 2. Add the variables above to Vercel Production and Preview environments.
 3. Apply SQL migrations to the target database using MIGRATION_DATABASE_URL before serving traffic.
 4. Deploy the repository to Vercel.
-5. Confirm the Vercel Cron schedule is active and CRON_SECRET matches the deployed environment.
+5. Confirm the Vercel Cron schedule is active and CRON_SECRET matches the deployed environment. The committed schedule runs daily to support Vercel Hobby; Pro can use a five-minute schedule by changing vercel.json to */5 * * * *.
 6. Create a project key, send test events, wait for processing, then verify the Events and Overview pages.
 
 ## Verification checklist

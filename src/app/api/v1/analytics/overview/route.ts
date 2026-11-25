@@ -12,7 +12,8 @@ export async function GET(request: Request) {
   if (!projectId) return apiError("projectId is required.");
   const access = await getProjectAccess(session.user.id, projectId);
   if (!access) return apiError("Project not found.", 404, "NOT_FOUND");
-  const range = normalizeDateRange(Number(params.get("days") || 30));
+  const requestedDays = params.has("days") ? Number(params.get("days")) : 30;
+  const range = normalizeDateRange(requestedDays);
   const previousFrom = new Date(range.from + "T00:00:00.000Z");
   previousFrom.setUTCDate(previousFrom.getUTCDate() - range.days);
   const previousStart = previousFrom.toISOString().slice(0, 10);
