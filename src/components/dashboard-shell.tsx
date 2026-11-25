@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Activity, ChevronDown, Command, Database, FileText, FolderKanban, Funnel, LayoutDashboard, LogOut, Menu, Search, Settings2, Sparkles, Users, X } from "lucide-react";
+import { Activity, ChevronDown, Command, Database, FileText, FolderKanban, Filter, LayoutDashboard, LogOut, Menu, Search, Settings2, Sparkles, Users, X } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ const nav = [
   { label: "Workspace", items: [
     { href: "/overview", label: "Overview", icon: LayoutDashboard },
     { href: "/events", label: "Events", icon: Activity },
-    { href: "/funnels", label: "Funnels", icon: Funnel },
+    { href: "/funnels", label: "Filters", icon: Filter },
     { href: "/retention", label: "Retention", icon: Users },
   ] },
   { label: "Manage", items: [
