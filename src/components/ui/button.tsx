@@ -16,7 +16,7 @@ const buttonStyles = cva("inline-flex items-center justify-center gap-2 rounded-
   defaultVariants: { variant: "primary", size: "md" },
 });
 
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonStyles> {}
+export type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "size"> & VariantProps<typeof buttonStyles>;
 export function Button({ className, variant, size, ...props }: ButtonProps) {
   return <button className={twMerge(clsx(buttonStyles({ variant, size }), className))} {...props} />;
 }
