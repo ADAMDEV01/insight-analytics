@@ -2,6 +2,7 @@ import { pool } from "@/db";
 import { apiError } from "@/lib/http";
 import { getRequiredSession } from "@/lib/session";
 import { getProjectAccess } from "@/lib/permissions";
+import { isIsoDateString } from "@/lib/analytics";
 
 function csvCell(value: unknown): string {
   let text = value == null ? "" : typeof value === "string" ? value : JSON.stringify(value) ?? String(value);
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
   const to = params.get("to");
   const datePattern = /^\d{4}-\d{2}-\d{2}$/;
   if ((from && !datePattern.test(from)) || (to && !datePattern.test(to))) {
-    return apiError("Dates must use YYYY-MM-DD.", 422, "VALIDATION_ERROR");
+    return apiError("Dates must be valid YYYY-MM-DD values.", 422, "VALIDATION_ERROR");
   }
   if (from && to && from > to) return apiError("The start date must be before the end date.", 422, "VALIDATION_ERROR");
 
