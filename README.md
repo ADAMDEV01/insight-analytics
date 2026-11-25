@@ -70,6 +70,8 @@ Never commit .env.local or print secret values in CI logs.
 - npm run db:migrate — apply ordered SQL migrations from db/migrations
 - npm run db:studio — Drizzle Studio
 
+From packages/sdk, run npm install followed by npm run build to compile the browser SDK.
+
 New schema changes should be added as the next ordered SQL file in db/migrations. The migration runner records applied filenames in insight_schema_migrations and serializes concurrent migration runs with a PostgreSQL advisory lock.
 
 ## API
@@ -89,7 +91,7 @@ Every project-specific endpoint checks authenticated workspace membership server
 
 ## Browser SDK
 
-See packages/sdk/README.md. Build the SDK package with npm install and npm run build from packages/sdk. The publishable key is intentionally public and must not be treated as a server secret. Do not send sensitive personal data in event properties.
+See packages/sdk/README.md. Build the SDK package by running npm install and npm run build from packages/sdk; CI type-checks this package separately. The publishable key is intentionally public and must not be treated as a server secret. Do not send sensitive personal data in event properties.
 
 ## Deploying
 

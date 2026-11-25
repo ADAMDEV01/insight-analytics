@@ -42,3 +42,9 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Browser smoke test
         run: npm run test:e2e
+
+      - name: Install browser SDK dependencies
+        run: npm install --prefix packages/sdk --no-audit --no-fund
+
+      - name: Type check browser SDK
+        run: npm run build --prefix packages/sdk
