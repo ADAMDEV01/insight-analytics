@@ -22,6 +22,7 @@ export function ProjectManager() {
   const [selectedProject, setSelectedProject] = useState("");
 
   async function loadProjects() {
+    setLoading(true);
     try {
       const response = await fetch("/api/v1/projects");
       const body = await response.json();
@@ -36,20 +37,44 @@ export function ProjectManager() {
     }
   }
 
-  async function loadKeys(projectId: string) {
-    if (!projectId) return;
-    try {
-      const response = await fetch("/api/v1/api-keys?projectId=" + encodeURIComponent(projectId));
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.error?.message || "Could not load API keys.");
-      setKeys(body.data.keys);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not load API keys.");
-    }
-  }
+  useEffect(() => {
+    let active = true;
+    fetch("/api/v1/projects")
+      .then(async (response) => {
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error?.message || "Could not load projects.");
+        return body.data.projects as Project[];
+      })
+      .then((list) => {
+        if (!active) return;
+        setProjects(list);
+        setSelectedProject(list[0]?.id || "");
+        if (list.length === 0) setLoading(false);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          toast.error(error instanceof Error ? error.message : "Could not load projects.");
+          setLoading(false);
+        }
+      });
+    return () => { active = false; };
+  }, []);
 
-  useEffect(() => { void loadProjects(); }, []);
-  useEffect(() => { void loadKeys(selectedProject); }, [selectedProject]);
+  useEffect(() => {
+    if (!selectedProject) return;
+    let active = true;
+    fetch("/api/v1/api-keys?projectId=" + encodeURIComponent(selectedProject))
+      .then(async (response) => {
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error?.message || "Could not load API keys.");
+        return body.data.keys as ApiKey[];
+      })
+      .then((data) => { if (active) setKeys(data); })
+      .catch((error: unknown) => {
+        if (active) toast.error(error instanceof Error ? error.message : "Could not load API keys.");
+      });
+    return () => { active = false; };
+  }, [selectedProject]);
 
   async function createProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -87,7 +112,9 @@ export function ProjectManager() {
       if (!response.ok) throw new Error(body.error?.message || "Key creation failed.");
       setApiKey(body.data.key);
       setAllowedOrigins("");
-      await loadKeys(selectedProject);
+      const refreshed = await fetch("/api/v1/api-keys?projectId=" + encodeURIComponent(selectedProject));
+      const refreshedBody = await refreshed.json();
+      if (refreshed.ok) setKeys(refreshedBody.data.keys);
       toast.success("Publishable key created. Copy it now; it will not be shown again.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Key creation failed.");
@@ -102,7 +129,9 @@ export function ProjectManager() {
       const response = await fetch("/api/v1/api-keys?keyId=" + encodeURIComponent(keyId), { method: "DELETE" });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error?.message || "Key revocation failed.");
-      await loadKeys(selectedProject);
+      const refreshed = await fetch("/api/v1/api-keys?projectId=" + encodeURIComponent(selectedProject));
+      const refreshedBody = await refreshed.json();
+      if (refreshed.ok) setKeys(refreshedBody.data.keys);
       toast.success("API key revoked.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Key revocation failed.");
@@ -120,12 +149,12 @@ export function ProjectManager() {
         <Card className="p-5">
           <div className="mb-5 flex items-center justify-between">
             <div><h2 className="text-sm font-semibold">Your projects</h2><p className="mt-1 text-xs text-muted">Projects belong to your current workspace.</p></div>
-            <button onClick={() => { setLoading(true); void loadProjects(); }} className="text-muted" aria-label="Refresh projects"><RefreshCw size={15} /></button>
+            <button onClick={() => void loadProjects()} className="text-muted" aria-label="Refresh projects"><RefreshCw size={15} /></button>
           </div>
           {loading ? <div className="space-y-3">{[1,2].map((item) => <div key={item} className="h-16 animate-pulse rounded-xl bg-panel-raised" />)}</div> : (
             <div className="space-y-2">
               {projects.map((project) => (
-                <button key={project.id} onClick={() => { setSelectedProject(project.id); setApiKey(""); }} className={(selectedProject === project.id ? "border-accent bg-accent-soft" : "border-subtle bg-panel-raised") + " flex w-full items-center gap-3 rounded-xl border p-3 text-left"}>
+                <button key={project.id} onClick={() => { setSelectedProject(project.id); setApiKey(""); setKeys([]); }} className={(selectedProject === project.id ? "border-accent bg-accent-soft" : "border-subtle bg-panel-raised") + " flex w-full items-center gap-3 rounded-xl border p-3 text-left"}>
                   <div className="grid h-9 w-9 place-items-center rounded-lg bg-background text-accent"><FolderPlus size={17} /></div>
                   <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{project.name}</p><p className="truncate text-[11px] text-muted">{project.description || project.slug}</p></div>
                   <span className="text-[10px] text-muted">{new Date(project.createdAt).toLocaleDateString()}</span>
