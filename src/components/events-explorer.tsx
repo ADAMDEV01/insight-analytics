@@ -14,7 +14,7 @@ export function EventsExplorer() {
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState<EventRow[]>([]);
   const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [loadedKey, setLoadedKey] = useState("");
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<EventRow | null>(null);
 
@@ -30,10 +30,13 @@ export function EventsExplorer() {
       .catch(() => setError("Projects could not be loaded."));
   }, []);
 
+  const requestKey = projectId ? `${projectId}:${page}:${search}` : "";
+  const loading = Boolean(requestKey) && loadedKey !== requestKey;
+
   useEffect(() => {
     if (!projectId) return;
     let alive = true;
-    setLoading(true);
+    const currentRequestKey = `${projectId}:${page}:${search}`;
     const params = new URLSearchParams({ projectId, limit: "25", offset: String(page * 25), search });
     fetch("/api/v1/analytics/events?" + params.toString())
       .then(async (response) => {
@@ -41,9 +44,8 @@ export function EventsExplorer() {
         if (!response.ok) throw new Error(body.error?.message || "Events could not be loaded.");
         return body.data;
       })
-      .then((data) => { if (alive) { setRows(data.events); setTotal(data.total); setError(""); } })
-      .catch((reason: unknown) => { if (alive) setError(reason instanceof Error ? reason.message : "Events could not be loaded."); })
-      .finally(() => { if (alive) setLoading(false); });
+      .then((data) => { if (alive) { setRows(data.events); setTotal(data.total); setError(""); setLoadedKey(currentRequestKey); } })
+      .catch((reason: unknown) => { if (alive) { setError(reason instanceof Error ? reason.message : "Events could not be loaded."); setLoadedKey(currentRequestKey); } });
     return () => { alive = false; };
   }, [projectId, page, search]);
 
