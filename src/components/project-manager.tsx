@@ -49,7 +49,7 @@ export function ProjectManager() {
         if (!active) return;
         setProjects(list);
         setSelectedProject(list[0]?.id || "");
-        if (list.length === 0) setLoading(false);
+        setLoading(false);
       })
       .catch((error: unknown) => {
         if (active) {
