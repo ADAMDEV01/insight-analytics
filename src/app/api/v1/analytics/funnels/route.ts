@@ -4,6 +4,7 @@ import { apiError, apiSuccess, readJson } from "@/lib/http";
 import { getRequiredSession } from "@/lib/session";
 import { getProjectAccess } from "@/lib/permissions";
 import { computeFunnel } from "@/features/analytics/funnel";
+import { isIsoDateString } from "@/lib/analytics";
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const schema = z.object({
