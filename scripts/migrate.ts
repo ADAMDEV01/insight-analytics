@@ -2,6 +2,8 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { Pool } from "pg";
 
+config({ path: ".env.local" });
+
 const connectionString = process.env.MIGRATION_DATABASE_URL;
 if (!connectionString) throw new Error("Set MIGRATION_DATABASE_URL to a direct (non-pooled) PostgreSQL connection string.");
 const pool = new Pool({ connectionString, max: 1, connectionTimeoutMillis: 10000 });
