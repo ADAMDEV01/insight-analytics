@@ -15,7 +15,7 @@ export function ReportsManager() {
   const [reports, setReports] = useState<Report[]>([]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch("/api/v1/projects")
@@ -30,8 +30,7 @@ export function ReportsManager() {
   }, []);
 
   async function load(id: string) {
-    if (!id) { setReports([]); return; }
-    setLoading(true);
+    if (!id) return;
     try {
       const response = await fetch("/api/v1/reports?projectId=" + encodeURIComponent(id));
       const body = await response.json();
