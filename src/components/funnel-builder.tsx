@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 
 type Project = { id: string; name: string };
 type Step = { eventName: string; users: number; conversionFromPrevious: number; dropOff: number };
-export function FilterBuilder() {
+export function FunnelBuilder() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectId, setProjectId] = useState("");
   const [steps, setSteps] = useState(["page_view", "sign_up", "purchase"]);
