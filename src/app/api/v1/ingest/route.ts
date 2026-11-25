@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { pool, db } from "@/db";
@@ -80,7 +81,7 @@ export async function POST(request: Request) {
     if (result.accepted > 0) {
       after(async () => {
         try {
-          await processOutboxBatch(50);
+          await processOutboxBatch(10);
         } catch (error) {
           console.error("INSIGHT background event processing failed", error);
         }
