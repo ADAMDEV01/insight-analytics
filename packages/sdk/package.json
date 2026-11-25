@@ -1,0 +1,17 @@
+{
+  "name": "@insight/analytics",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Browser event ingestion SDK for INSIGHT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
