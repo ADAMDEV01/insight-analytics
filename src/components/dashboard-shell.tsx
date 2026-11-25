@@ -14,7 +14,7 @@ const nav = [
   { label: "Workspace", items: [
     { href: "/overview", label: "Overview", icon: LayoutDashboard },
     { href: "/events", label: "Events", icon: Activity },
-    { href: "/funnels", label: "Filters", icon: Filter },
+    { href: "/funnels", label: "Funnels", icon: Filter },
     { href: "/retention", label: "Retention", icon: Users },
   ] },
   { label: "Manage", items: [
@@ -40,7 +40,6 @@ export function DashboardShell({ user, workspace, children }: { user: UserInfo; 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
-  useEffect(() => setMobileOpen(false), [pathname]);
   const initials = user.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "IN";
 
   return (
@@ -48,7 +47,7 @@ export function DashboardShell({ user, workspace, children }: { user: UserInfo; 
       <aside className={(mobileOpen ? "translate-x-0" : "-translate-x-full") + " fixed inset-y-0 left-0 z-40 flex w-[258px] flex-col border-r border-subtle bg-panel transition-transform duration-200 lg:translate-x-0"}>
         <div className="flex h-[76px] items-center gap-3 border-b border-subtle px-6"><div className="grid h-9 w-9 place-items-center rounded-xl bg-accent text-white"><Sparkles size={18} /></div><div><p className="text-[15px] font-bold tracking-tight">INSIGHT</p><p className="text-[10px] font-semibold uppercase tracking-[.16em] text-muted">Analytics workspace</p></div><button onClick={() => setMobileOpen(false)} className="ml-auto text-muted lg:hidden" aria-label="Close navigation"><X size={18} /></button></div>
         <div className="border-b border-subtle p-4"><div className="surface-raised flex w-full items-center gap-3 rounded-xl p-3"><div className="grid h-8 w-8 place-items-center rounded-lg bg-accent-soft text-accent"><Database size={16} /></div><div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold">{workspace.name}</p><p className="mt-0.5 text-[10px] text-muted">Personal workspace</p></div><ChevronDown size={15} className="text-muted" /></div></div>
-        <nav className="flex-1 space-y-7 overflow-y-auto px-3 py-6">{nav.map((group) => <div key={group.label}><p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[.17em] text-muted">{group.label}</p><div className="space-y-1">{group.items.map((item) => { const active = pathname === item.href || pathname.startsWith(item.href + "/"); const Icon = item.icon; return <Link key={item.href} href={item.href} className={(active ? "bg-accent-soft text-accent" : "text-muted hover:bg-panel-raised hover:text-foreground") + " flex h-10 items-center gap-3 rounded-xl px-3 text-[13px] font-medium transition-colors"}><Icon size={17} strokeWidth={1.8} /><span>{item.label}</span>{active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-accent" />}</Link>; })}</div></div>)}</nav>
+        <nav className="flex-1 space-y-7 overflow-y-auto px-3 py-6">{nav.map((group) => <div key={group.label}><p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[.17em] text-muted">{group.label}</p><div className="space-y-1">{group.items.map((item) => { const active = pathname === item.href || pathname.startsWith(item.href + "/"); const Icon = item.icon; return <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={(active ? "bg-accent-soft text-accent" : "text-muted hover:bg-panel-raised hover:text-foreground") + " flex h-10 items-center gap-3 rounded-xl px-3 text-[13px] font-medium transition-colors"}><Icon size={17} strokeWidth={1.8} /><span>{item.label}</span>{active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-accent" />}</Link>; })}</div></div>)}</nav>
         <div className="border-t border-subtle p-4"><div className="rounded-xl bg-accent-soft p-3"><div className="mb-2 flex items-center gap-2 text-xs font-semibold text-accent"><Sparkles size={14} /> Product analytics</div><p className="text-[11px] leading-5 text-muted">Understand events, funnels, and retention in one focused workspace.</p></div><div className="mt-4 flex items-center gap-3"><div className="grid h-9 w-9 place-items-center rounded-full bg-panel-raised text-xs font-bold">{initials}</div><div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold">{user.name}</p><p className="truncate text-[10px] text-muted">{user.email}</p></div><button aria-label="Sign out" title="Sign out" onClick={async () => { await authClient.signOut(); router.replace("/sign-in"); router.refresh(); }} className="text-muted hover:text-foreground"><LogOut size={16} /></button></div></div>
       </aside>
       {mobileOpen && <button aria-label="Close menu overlay" onClick={() => setMobileOpen(false)} className="fixed inset-0 z-30 bg-black/50 lg:hidden" />}
