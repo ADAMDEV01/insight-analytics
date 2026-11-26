@@ -29,8 +29,10 @@ describe.skipIf(!enabled)("Better Auth database-backed rate limiting", () => {
     );
 
     const limited = responses.filter((response) => response.status === 429);
-    expect(limited.length).toBeGreaterThan(0);
-    expect(responses.filter((response) => response.status !== 429).length).toBeLessThanOrEqual(30);
+    const serverErrors = responses.filter((response) => response.status >= 500);
+    expect(limited).toHaveLength(10);
+    expect(serverErrors).toHaveLength(0);
+    expect(responses.filter((response) => response.status !== 429)).toHaveLength(30);
 
     const persisted = await pool.query(
       'SELECT count FROM "rateLimit" WHERE "lastRequest" >= $1',

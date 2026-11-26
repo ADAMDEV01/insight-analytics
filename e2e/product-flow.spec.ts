@@ -1,10 +1,11 @@
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 
 type ApiSuccess<T> = { data: T };
 type ApiFailure = { error?: { message?: string } };
 
 async function register(page: import("@playwright/test").Page) {
+  await page.context().setExtraHTTPHeaders({ "x-forwarded-for": `198.51.100.${randomInt(1, 255)}` });
   const email = `ci-journey-${randomUUID()}@example.com`;
   const password = "Strong-Test-Password-123!";
   await page.goto("/sign-up");
@@ -63,7 +64,10 @@ test("a new project can ingest events and power events, overview, funnel, retent
     data: { events },
   });
   const ingest = await responseData<{ accepted: number; duplicates: number; received: number }>(ingestResponse, "Event ingestion");
-  expect(ingest).toEqual({ accepted: 3, duplicates: 0, received: 3 });
+  expect(ingest.accepted).toBe(3);
+  expect(ingest.duplicates).toBe(0);
+  expect(ingest.received).toBe(3);
+  expect(ingest.projectId).toBe(project.id);
 
   const eventListResponse = await page.request.get(
     `/api/v1/analytics/events?projectId=${project.id}&limit=100&offset=0`,
