@@ -93,6 +93,13 @@ New schema changes should be added as the next ordered SQL file in db/migrations
 
 Every project-specific endpoint checks authenticated workspace membership server-side. UI route visibility is not an authorization boundary.
 
+## Security automation
+
+- GitHub CodeQL scans JavaScript and TypeScript on pull requests, pushes to main, and a weekly schedule.
+- Dependabot checks root dependencies, browser SDK dependencies, and GitHub Actions weekly.
+- CI runs `npm audit` for the root app and browser SDK and fails on high-severity advisories.
+- Keep credentials in Vercel environment variables; the direct migration URL is intentionally not required by the serverless runtime.
+
 ## Browser SDK
 
 See packages/sdk/README.md. Build the SDK package by running npm install and npm run build from packages/sdk; CI type-checks this package separately. The publishable key is intentionally public and must not be treated as a server secret. Do not send sensitive personal data in event properties.
