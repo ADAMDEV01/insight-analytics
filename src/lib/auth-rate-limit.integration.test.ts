@@ -12,7 +12,7 @@ describe.skipIf(!enabled)("Better Auth database-backed rate limiting", () => {
     }
   });
 
-  it("enforces the configured limit across concurrent HTTP requests and persists the counter", async () => {
+  it("enforces the configured limit across concurrent HTTP requests and persists the counter without unique-key races", async () => {
     process.env.BETTER_AUTH_RATE_LIMIT_MAX = "30";
     const { auth } = await import("@/lib/auth");
     cleanupTimestamp = Date.now();
@@ -39,6 +39,29 @@ describe.skipIf(!enabled)("Better Auth database-backed rate limiting", () => {
       [cleanupTimestamp],
     );
     expect(persisted.rows.length).toBeGreaterThan(0);
-    expect(persisted.rows.some((row) => Number(row.count) > 0)).toBe(true);
+    expect(persisted.rows.some((row) => Number(row.count) === 30)).toBe(true);
+  });
+
+  it("honors Better Auth's stricter built-in sign-up rule", async () => {
+    const { auth } = await import("@/lib/auth");
+    const signUpIp = "192.0.2.123";
+    const responses = await Promise.all(
+      Array.from({ length: 4 }, () =>
+        auth.handler(
+          new Request("http://localhost:3000/api/auth/sign-up/email", {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              "x-forwarded-for": signUpIp,
+            },
+            body: JSON.stringify({}),
+          }),
+        ),
+      ),
+    );
+
+    expect(responses.filter((response) => response.status === 429)).toHaveLength(1);
+    expect(responses.filter((response) => response.status >= 500)).toHaveLength(0);
+    expect(responses.filter((response) => response.status !== 429)).toHaveLength(3);
   });
 });

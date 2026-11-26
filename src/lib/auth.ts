@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { db } from "@/db";
+import { persistentRateLimitStorage } from "@/lib/persistent-rate-limit";
 import { account, rateLimit, session, user, verification } from "@/db/schema";
 
 const secret = process.env.BETTER_AUTH_SECRET;
@@ -34,5 +35,5 @@ export const auth = betterAuth({
   emailAndPassword: { enabled: true, minPasswordLength: 10, maxPasswordLength: 128, autoSignIn: true },
   advanced: { cookiePrefix: "insight", useSecureCookies: process.env.NODE_ENV === "production" },
   trustedOrigins,
-  rateLimit: { enabled: true, window: 60, max: rateLimitMax, storage: "database", modelName: "rateLimit" },
+  rateLimit: { enabled: true, window: 60, max: rateLimitMax, customStorage: persistentRateLimitStorage },
 });
