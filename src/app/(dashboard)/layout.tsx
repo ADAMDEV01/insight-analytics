@@ -1,11 +1,19 @@
 import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { getRequiredSession } from "@/lib/session";
-import { ensurePersonalWorkspace } from "@/lib/workspace";
+import { getDefaultWorkspace } from "@/lib/workspace";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await getRequiredSession();
   if (!session) redirect("/sign-in");
-  const workspace = await ensurePersonalWorkspace(session.user.id, session.user.name || "My");
-  return <DashboardShell user={{ name: session.user.name || "Member", email: session.user.email }} workspace={{ id: workspace.id, name: workspace.name, slug: workspace.slug }}>{children}</DashboardShell>;
+
+  const context = await getDefaultWorkspace(session.user.id, session.user.name || "My");
+  return (
+    <DashboardShell
+      user={{ name: session.user.name || "Member", email: session.user.email }}
+      workspace={{ id: context.workspace.id, name: context.workspace.name, slug: context.workspace.slug }}
+    >
+      {children}
+    </DashboardShell>
+  );
 }
