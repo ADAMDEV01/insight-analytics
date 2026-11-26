@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   if (from > to) return apiError("The start date must be before the end date.", 422, "VALIDATION_ERROR");
 
   const result = await pool.query(
-    "SELECT distinct_id AS \"distinctId\", event_name AS \"eventName\", occurred_at AS \"occurredAt\" FROM events WHERE project_id=$1 AND event_name=ANY($2::text[]) AND occurred_at >= $3::date AND occurred_at < ($4::date + INTERVAL '1 day') ORDER BY distinct_id, occurred_at LIMIT 20001",
+    "SELECT id, distinct_id AS \"distinctId\", event_name AS \"eventName\", occurred_at AS \"occurredAt\", received_at AS \"receivedAt\" FROM events WHERE project_id=$1 AND event_name=ANY($2::text[]) AND occurred_at >= $3::date AND occurred_at < ($4::date + INTERVAL '1 day') ORDER BY distinct_id, occurred_at, received_at, id LIMIT 20001",
     [projectId, steps, from, to],
   );
   if (result.rows.length > 20000) return apiError("This funnel range is too large for an interactive query. Narrow the date range.", 413, "QUERY_TOO_LARGE");

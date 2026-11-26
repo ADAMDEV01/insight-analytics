@@ -27,6 +27,26 @@ describe("computeFunnel", () => {
     expect(result.map((step) => step.users)).toEqual([2, 1]);
   });
 
+  it("uses received time to order events that share the same occurrence timestamp", () => {
+    const result = computeFunnel([
+      {
+        distinctId: "same-time",
+        eventName: "signup",
+        occurredAt: "2026-01-01T10:00:00Z",
+        receivedAt: "2026-01-01T10:00:02Z",
+        id: "b",
+      },
+      {
+        distinctId: "same-time",
+        eventName: "view",
+        occurredAt: "2026-01-01T10:00:00Z",
+        receivedAt: "2026-01-01T10:00:01Z",
+        id: "a",
+      },
+    ], ["view", "signup"]);
+    expect(result.map((step) => step.users)).toEqual([1, 1]);
+  });
+
   it("rejects invalid funnel sizes", () => {
     expect(() => computeFunnel([], ["only-one"])).toThrow();
     expect(() => computeFunnel([], Array.from({ length: 9 }, (_, index) => "step-" + index))).toThrow();
