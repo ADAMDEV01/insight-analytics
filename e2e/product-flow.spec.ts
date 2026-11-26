@@ -63,7 +63,7 @@ test("a new project can ingest events and power events, overview, funnel, retent
     headers: { Authorization: `Bearer ${key}` },
     data: { events },
   });
-  const ingest = await responseData<{ accepted: number; duplicates: number; received: number }>(ingestResponse, "Event ingestion");
+  const ingest = await responseData<{ projectId: string; accepted: number; duplicates: number; received: number }>(ingestResponse, "Event ingestion");
   expect(ingest.accepted).toBe(3);
   expect(ingest.duplicates).toBe(0);
   expect(ingest.received).toBe(3);
