@@ -17,6 +17,7 @@ const trustedOrigins = Array.from(new Set([
   "https://insight-analytics-addrryhby-5992.vercel.app",
   "https://insight-analytics-git-main-addrryhby-5992.vercel.app",
   "http://localhost:3000",
+  process.env.NODE_ENV === "production" ? undefined : "http://127.0.0.1:3000",
 ].filter((origin): origin is string => Boolean(origin))));
 
 export const auth = betterAuth({
