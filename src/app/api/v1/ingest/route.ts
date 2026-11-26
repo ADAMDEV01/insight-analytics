@@ -48,6 +48,18 @@ export async function POST(request: Request) {
     const match = authorization.match(/^Bearer (ia_pub_[A-Za-z0-9_-]{32,})$/);
     if (!match) return cors(apiError("A valid publishable key is required.", 401, "INVALID_KEY"), origin);
 
+    const keyHash = hashApiKey(match[1]);
+    const [key] = await db
+      .select({ id: apiKeys.id, projectId: apiKeys.projectId, allowedOrigins: apiKeys.allowedOrigins })
+      .from(apiKeys)
+      .where(and(eq(apiKeys.keyHash, keyHash), isNull(apiKeys.revokedAt)))
+      .limit(1);
+
+    if (!key) return cors(apiError("The publishable key is invalid or revoked.", 401, "INVALID_KEY"), origin);
+    if (origin && key.allowedOrigins.length > 0 && !key.allowedOrigins.includes(origin)) {
+      return cors(apiError("This origin is not allowed for the project key.", 403, "ORIGIN_NOT_ALLOWED"), null);
+    }
+
     const contentLength = parseContentLength(request.headers.get("content-length"));
     if (contentLength === null) {
       return cors(apiError("Invalid Content-Length header.", 400, "INVALID_CONTENT_LENGTH"), origin);
@@ -67,18 +79,6 @@ export async function POST(request: Request) {
 
     const parsed = batchSchema.safeParse(raw);
     if (!parsed.success) return cors(apiError(parsed.error.issues[0]?.message || "Invalid event batch.", 422, "VALIDATION_ERROR"), origin);
-
-    const keyHash = hashApiKey(match[1]);
-    const [key] = await db
-      .select({ id: apiKeys.id, projectId: apiKeys.projectId, allowedOrigins: apiKeys.allowedOrigins })
-      .from(apiKeys)
-      .where(and(eq(apiKeys.keyHash, keyHash), isNull(apiKeys.revokedAt)))
-      .limit(1);
-
-    if (!key) return cors(apiError("The publishable key is invalid or revoked.", 401, "INVALID_KEY"), origin);
-    if (origin && key.allowedOrigins.length > 0 && !key.allowedOrigins.includes(origin)) {
-      return cors(apiError("This origin is not allowed for the project key.", 403, "ORIGIN_NOT_ALLOWED"), null);
-    }
 
     const configuredLimit = Number(process.env.INGEST_RATE_LIMIT_PER_MINUTE);
     const limit = Number.isSafeInteger(configuredLimit) && configuredLimit > 0
