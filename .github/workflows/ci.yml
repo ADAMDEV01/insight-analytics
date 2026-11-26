@@ -75,7 +75,7 @@ jobs:
             private: true,
             dependencies: productionDependencies
           };
-          fs.writeFileSync(path.join(destination, "package.json"), JSON.stringify(productionManifest, null, 2) + "\\n");
+          fs.writeFileSync(path.join(destination, "package.json"), JSON.stringify(productionManifest, null, 2));
           fs.copyFileSync("package-lock.json", path.join(destination, "package-lock.json"));
           NODE
           npm install --prefix "$audit_dir" --package-lock-only --ignore-scripts --no-audit --no-fund
