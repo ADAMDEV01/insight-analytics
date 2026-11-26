@@ -13,3 +13,8 @@
 - Do not store unnecessary personal information in event properties. Define consent, retention, deletion, and access processes before production use.
 
 The browser ingestion key is a publishable credential, not a secret. Origin restrictions reduce casual misuse but do not replace rate limiting, monitoring, or key rotation.
+
+
+## Development-tool advisory exception
+
+The root dependency tree still reports a Moderate esbuild advisory (GHSA-67mh-4wv8-2f99) through Drizzle Kit's deprecated `@esbuild-kit/esm-loader` dependency. This is a development-tool dependency and is not part of the production runtime dependency tree. The advisory concerns exposure when the affected esbuild development server is running. The current stable Drizzle Kit line has not yet removed the deprecated loader; forcing `npm audit fix --force` proposes a breaking downgrade of Drizzle Kit and is not an acceptable remediation. CI separately requires a clean moderate-threshold audit for production dependencies and blocks high-severity advisories in the entire tree. Revisit this exception when Drizzle Kit ships a stable release without the loader.
