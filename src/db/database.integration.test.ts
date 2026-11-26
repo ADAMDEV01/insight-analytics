@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db, pool } from "@/db";
-import { projects, user as users, workspaces, workspaceMembers } from "@/db/schema";
+import { projects, rateLimit, user as users, workspaces, workspaceMembers } from "@/db/schema";
 import { getProjectAccess } from "@/lib/permissions";
 import { persistEventBatch } from "@/lib/ingestion";
 import { processOutboxBatch } from "@/lib/process-outbox";
@@ -16,6 +16,7 @@ describe.skipIf(!enabled)("PostgreSQL event ingestion and outbox", () => {
   let workspaceId = "";
   let projectId = "";
   const eventCount = 15;
+  const authRateLimitKey = "integration-auth-rate-limit-" + suffix;
 
   beforeAll(async () => {
     await db.insert(users).values([
@@ -38,9 +39,39 @@ describe.skipIf(!enabled)("PostgreSQL event ingestion and outbox", () => {
   });
 
   afterAll(async () => {
+    await db.delete(rateLimit).where(eq(rateLimit.key, authRateLimitKey));
     if (workspaceId) await db.delete(workspaces).where(eq(workspaces.id, workspaceId));
     await db.delete(users).where(eq(users.id, ownerId));
     await db.delete(users).where(eq(users.id, strangerId));
+  });
+
+  it("persists and atomically increments auth rate-limit counters in PostgreSQL", async () => {
+    await Promise.all(
+      Array.from({ length: 5 }, () =>
+        db
+          .insert(rateLimit)
+          .values({
+            id: randomUUID(),
+            key: authRateLimitKey,
+            count: 1,
+            lastRequest: Date.now(),
+          })
+          .onConflictDoUpdate({
+            target: rateLimit.key,
+            set: {
+              count: sql`${rateLimit.count} + 1`,
+              lastRequest: Date.now(),
+            },
+          }),
+      ),
+    );
+
+    const [counter] = await db
+      .select({ count: rateLimit.count })
+      .from(rateLimit)
+      .where(eq(rateLimit.key, authRateLimitKey));
+
+    expect(counter?.count).toBe(5);
   });
 
   it("enforces project membership and persists event batches idempotently", async () => {

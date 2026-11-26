@@ -35,19 +35,57 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/insight
       MIGRATION_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/insight
       BETTER_AUTH_SECRET: ci-only-secret-that-is-long-enough-for-builds
+      BETTER_AUTH_RATE_LIMIT_MAX: "30"
       BETTER_AUTH_URL: http://localhost:3000
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       CRON_SECRET: ci-only-cron-secret
       RUN_DB_INTEGRATION: "1"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
+          package-manager-cache: false
       - name: Upgrade npm to a release with the Arborist peer-resolution fix
         run: npm install --global npm@11.21.2
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
+      - name: Create production-only dependency lockfile
+        run: |
+          set -euo pipefail
+          audit_dir="$RUNNER_TEMP/insight-production-audit"
+          mkdir -p "$audit_dir"
+          node - "$audit_dir" <<'NODE'
+          const fs = require("node:fs");
+          const path = require("node:path");
+          const destination = process.argv[2];
+          const manifest = JSON.parse(fs.readFileSync("package.json", "utf8"));
+          const lock = JSON.parse(fs.readFileSync("package-lock.json", "utf8"));
+          const productionDependencies = {};
+          for (const name of Object.keys(manifest.dependencies || {})) {
+            const entry = lock.packages[`node_modules/${name}`];
+            if (!entry || !entry.version) {
+              throw new Error(`Missing locked production dependency: ${name}`);
+            }
+            productionDependencies[name] = entry.version;
+          }
+          const productionManifest = {
+            name: manifest.name + "-production-audit",
+            version: manifest.version,
+            private: true,
+            dependencies: productionDependencies
+          };
+          fs.writeFileSync(path.join(destination, "package.json"), JSON.stringify(productionManifest, null, 2));
+          fs.copyFileSync("package-lock.json", path.join(destination, "package-lock.json"));
+          NODE
+          npm install --prefix "$audit_dir" --package-lock-only --ignore-scripts --no-audit --no-fund
+          npm ci --prefix "$audit_dir" --ignore-scripts --no-audit --no-fund
+      - name: Audit production dependencies
+        run: npm audit --prefix "$RUNNER_TEMP/insight-production-audit" --audit-level=moderate
+      - name: Audit all dependencies for high-severity advisories
+        run: npm audit --audit-level=high
+      - name: Audit browser SDK dependencies
+        run: npm audit --prefix packages/sdk --audit-level=high
       - name: Apply database migrations
         run: npm run db:migrate
       - name: Lint
@@ -63,6 +101,6 @@ jobs:
       - name: Browser smoke test
         run: npm run test:e2e
       - name: Install browser SDK dependencies
-        run: npm install --prefix packages/sdk --no-audit --no-fund
+        run: npm ci --prefix packages/sdk --no-audit --no-fund
       - name: Type check browser SDK
         run: npm run build --prefix packages/sdk

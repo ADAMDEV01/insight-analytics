@@ -16,6 +16,7 @@ INSIGHT is a full-stack product analytics platform focused on a responsive analy
 ## Features
 
 - Password registration, sign-in, sign-out, and persistent sessions
+- PostgreSQL-backed Better Auth rate limiting using atomic UPSERT counters shared across serverless instances, with bounded expiry cleanup
 - Automatically provisioned personal workspace and initial project
 - Workspace membership roles: owner, admin, analyst, viewer
 - Project creation, key listing, one-time display, and immediate key revocation
@@ -35,12 +36,12 @@ See docs/ARCHITECTURE.md, docs/PRODUCT.md, and docs/SECURITY.md.
 
 ## Requirements and setup
 
-Requirements: Node.js 22.12+ and PostgreSQL 16+ (Neon is supported).
+Requirements: Node.js 24.x and PostgreSQL 16+ (Neon is supported).
 
-1. Run npm install.
+1. Run npm ci.
 2. Copy .env.example to .env.local.
 3. Set DATABASE_URL to a pooled PostgreSQL URL for application traffic.
-4. Set MIGRATION_DATABASE_URL to a direct, non-pooled PostgreSQL URL for schema migrations.
+4. Keep MIGRATION_DATABASE_URL as a direct, non-pooled connection for the trusted migration operator or CI migration environment; do not expose it to browser code or the deployed application runtime.
 5. Configure BETTER_AUTH_SECRET (32+ characters), BETTER_AUTH_URL, NEXT_PUBLIC_APP_URL, and CRON_SECRET.
 6. Run npm run db:migrate.
 7. Run npm run dev.
@@ -54,6 +55,7 @@ Never commit .env.local or print secret values in CI logs.
 | DATABASE_URL | Pooled Postgres connection used by app runtime |
 | MIGRATION_DATABASE_URL | Direct Postgres connection used by migration runner |
 | BETTER_AUTH_SECRET | Better Auth signing secret, at least 32 characters |
+| BETTER_AUTH_RATE_LIMIT_MAX | Optional global auth request limit per 60-second window; defaults to 30 and is capped at 120 |
 | BETTER_AUTH_URL | Canonical server auth URL |
 | NEXT_PUBLIC_APP_URL | Browser-visible application origin |
 | CRON_SECRET | Bearer secret protecting cron processor |
@@ -70,7 +72,7 @@ Never commit .env.local or print secret values in CI logs.
 - npm run db:migrate — apply ordered SQL migrations from db/migrations
 - npm run db:studio — Drizzle Studio
 
-From packages/sdk, run npm install followed by npm run build to compile the browser SDK.
+From packages/sdk, run npm ci followed by npm run build to compile the browser SDK.
 
 New schema changes should be added as the next ordered SQL file in db/migrations. The migration runner records applied filenames in insight_schema_migrations and serializes concurrent migration runs with a PostgreSQL advisory lock.
 
@@ -91,6 +93,14 @@ New schema changes should be added as the next ordered SQL file in db/migrations
 
 Every project-specific endpoint checks authenticated workspace membership server-side. UI route visibility is not an authorization boundary.
 
+## Security automation
+
+- GitHub CodeQL scans JavaScript and TypeScript on pull requests, pushes to main, and a weekly schedule.
+- Dependabot checks root dependencies, browser SDK dependencies, and GitHub Actions weekly.
+- CI fails on Moderate-or-higher vulnerabilities in production dependencies, High-or-higher findings in the full dependency tree, and High-or-higher findings in the browser SDK.
+- The current Drizzle Kit stable CLI dependency graph still includes `@esbuild-kit/esm-loader` → `esbuild@0.18.20` (Moderate GHSA-67mh-4wv8-2f99). The advisory concerns exposure when the esbuild development server is running; this is a development-only tool path, not part of the deployed runtime. The upstream stable Drizzle Kit release has not removed that dependency yet. Do not apply `npm audit fix --force`: it proposes a breaking Drizzle Kit downgrade. Reassess when upstream ships a stable release without the deprecated loader.
+- Keep credentials in Vercel environment variables; the direct migration URL is intentionally not required by the serverless runtime.
+
 ## Browser SDK
 
 See packages/sdk/README.md. Build the SDK package by running npm install and npm run build from packages/sdk; CI type-checks this package separately. The publishable key is intentionally public and must not be treated as a server secret. Do not send sensitive personal data in event properties.
@@ -98,7 +108,7 @@ See packages/sdk/README.md. Build the SDK package by running npm install and npm
 ## Deploying
 
 1. Provision Neon Postgres in a region supported by your Vercel app and obtain pooled and direct connection strings.
-2. Add the variables above to Vercel Production and Preview environments.
+2. Add only runtime variables (DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL, NEXT_PUBLIC_APP_URL, and CRON_SECRET) to Vercel Production and Preview. Keep MIGRATION_DATABASE_URL in the restricted migration environment, not in the deployed runtime.
 3. Apply SQL migrations to the target database using MIGRATION_DATABASE_URL before serving traffic.
 4. Deploy the repository to Vercel.
 5. Confirm the Vercel Cron schedule is active and CRON_SECRET matches the deployed environment. The committed schedule runs daily to support Vercel Hobby; Pro can use a five-minute schedule by changing vercel.json to */5 * * * *.
@@ -106,8 +116,8 @@ See packages/sdk/README.md. Build the SDK package by running npm install and npm
 
 ## Production verification checklist
 
-- [x] GitHub CI quality, PostgreSQL integration tests, production build, Playwright browser smoke test, and browser SDK build passed on the pre-auth-fix baseline.
-- [x] Neon Production and Preview databases provisioned and initial SQL migration applied.
+- [x] GitHub CI on the final verification baseline: 41 unit/PostgreSQL tests across 10 files, 6 Playwright browser tests (Desktop and Mobile), production build, SDK clean install/typecheck, CodeQL, and dependency audits passed.
+- [x] Apply all committed SQL migrations, including the persistent Better Auth rate-limit table, to Neon Production and Preview before the next release.
 - [x] Vercel Production deployment completed for the current auth-origin and favicon fixes.
 - [ ] Confirm account registration, sign-in, sign-out, and session restoration in the production browser.
 - [ ] Confirm cross-workspace access is denied by server-side membership checks.

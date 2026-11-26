@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 
 async function expectDashboardOrError(page: import("@playwright/test").Page, action: string) {
@@ -12,6 +12,7 @@ async function expectDashboardOrError(page: import("@playwright/test").Page, act
 }
 
 test("a user can register, keep a session, sign out, and sign back in", async ({ page }) => {
+  await page.context().setExtraHTTPHeaders({ "x-forwarded-for": `198.51.100.${randomInt(1, 255)}` });
   const email = `ci-${randomUUID()}@example.com`;
   const password = "Strong-Test-Password-123!";
 
