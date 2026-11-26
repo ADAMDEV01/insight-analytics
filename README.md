@@ -97,7 +97,8 @@ Every project-specific endpoint checks authenticated workspace membership server
 
 - GitHub CodeQL scans JavaScript and TypeScript on pull requests, pushes to main, and a weekly schedule.
 - Dependabot checks root dependencies, browser SDK dependencies, and GitHub Actions weekly.
-- CI runs `npm audit` for the root app and browser SDK and fails on high-severity advisories.
+- CI runs a moderate-threshold audit for production dependencies and a high-threshold audit for the full development tree, plus the browser SDK audit.
+- The current Drizzle Kit stable CLI dependency graph still includes `@esbuild-kit/esm-loader` → `esbuild@0.18.20` (Moderate GHSA-67mh-4wv8-2f99). The advisory concerns exposure when the esbuild development server is running; this is a development-only tool path, not part of the deployed runtime. The upstream stable Drizzle Kit release has not removed that dependency yet. Do not apply `npm audit fix --force`: it proposes a breaking Drizzle Kit downgrade. Reassess when upstream ships a stable release without the deprecated loader.
 - Keep credentials in Vercel environment variables; the direct migration URL is intentionally not required by the serverless runtime.
 
 ## Browser SDK
