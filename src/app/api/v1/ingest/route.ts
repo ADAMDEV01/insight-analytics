@@ -8,6 +8,7 @@ import { hashApiKey } from "@/lib/crypto";
 import { persistEventBatch } from "@/lib/ingestion";
 import { processOutboxBatch } from "@/lib/process-outbox";
 import { readBoundedText } from "@/lib/read-bounded-text";
+import { parseContentLength } from "@/lib/content-length";
 
 export const runtime = "nodejs";
 
@@ -45,19 +46,12 @@ export async function POST(request: Request) {
     const match = authorization.match(/^Bearer (ia_pub_[A-Za-z0-9_-]{32,})$/);
     if (!match) return cors(apiError("A valid publishable key is required.", 401, "INVALID_KEY"), origin);
 
-    const contentLengthHeader = request.headers.get("content-length");
-    if (contentLengthHeader !== null) {
-      if (!/^\\d+$/.test(contentLengthHeader)) {
-        return cors(apiError("Invalid Content-Length header.", 400, "INVALID_CONTENT_LENGTH"), origin);
-      }
-
-      const contentLength = Number(contentLengthHeader);
-      if (!Number.isSafeInteger(contentLength)) {
-        return cors(apiError("Invalid Content-Length header.", 400, "INVALID_CONTENT_LENGTH"), origin);
-      }
-      if (contentLength > MAX_INGEST_BODY_BYTES) {
-        return cors(apiError("Payload exceeds the 256 KB limit.", 413, "PAYLOAD_TOO_LARGE"), origin);
-      }
+    const contentLength = parseContentLength(request.headers.get("content-length"));
+    if (contentLength === null) {
+      return cors(apiError("Invalid Content-Length header.", 400, "INVALID_CONTENT_LENGTH"), origin);
+    }
+    if (contentLength !== undefined && contentLength > MAX_INGEST_BODY_BYTES) {
+      return cors(apiError("Payload exceeds the 256 KB limit.", 413, "PAYLOAD_TOO_LARGE"), origin);
     }
 
     // Enforce the cap while reading, including chunked requests without Content-Length.
