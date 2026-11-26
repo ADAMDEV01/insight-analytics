@@ -7,8 +7,11 @@ import { apiError, apiSuccess } from "@/lib/http";
 import { hashApiKey } from "@/lib/crypto";
 import { persistEventBatch } from "@/lib/ingestion";
 import { processOutboxBatch } from "@/lib/process-outbox";
+import { readBoundedText } from "@/lib/read-bounded-text";
 
 export const runtime = "nodejs";
+
+const MAX_INGEST_BODY_BYTES = 256_000;
 
 const eventSchema = z.object({
   eventName: z.string().trim().min(1).max(120).regex(/^[a-zA-Z0-9_.:-]+$/),
@@ -42,12 +45,26 @@ export async function POST(request: Request) {
     const match = authorization.match(/^Bearer (ia_pub_[A-Za-z0-9_-]{32,})$/);
     if (!match) return cors(apiError("A valid publishable key is required.", 401, "INVALID_KEY"), origin);
 
-    const contentLength = Number(request.headers.get("content-length") || 0);
-    if (Number.isFinite(contentLength) && contentLength > 256000) {
+    const contentLengthHeader = request.headers.get("content-length");
+    if (contentLengthHeader !== null) {
+      if (!/^\\d+$/.test(contentLengthHeader)) {
+        return cors(apiError("Invalid Content-Length header.", 400, "INVALID_CONTENT_LENGTH"), origin);
+      }
+
+      const contentLength = Number(contentLengthHeader);
+      if (!Number.isSafeInteger(contentLength)) {
+        return cors(apiError("Invalid Content-Length header.", 400, "INVALID_CONTENT_LENGTH"), origin);
+      }
+      if (contentLength > MAX_INGEST_BODY_BYTES) {
+        return cors(apiError("Payload exceeds the 256 KB limit.", 413, "PAYLOAD_TOO_LARGE"), origin);
+      }
+    }
+
+    // Enforce the cap while reading, including chunked requests without Content-Length.
+    const text = await readBoundedText(request, MAX_INGEST_BODY_BYTES);
+    if (text === null) {
       return cors(apiError("Payload exceeds the 256 KB limit.", 413, "PAYLOAD_TOO_LARGE"), origin);
     }
-    const text = await request.text();
-    if (Buffer.byteLength(text, "utf8") > 256000) return cors(apiError("Payload exceeds the 256 KB limit.", 413, "PAYLOAD_TOO_LARGE"), origin);
 
     let raw: unknown;
     try { raw = JSON.parse(text); } catch { return cors(apiError("Request body must be valid JSON.", 400, "INVALID_JSON"), origin); }
