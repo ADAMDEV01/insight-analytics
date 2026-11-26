@@ -2,7 +2,9 @@
 
 - Keep database, auth, and cron credentials server-side only.
 - Store publishable key hashes, never plaintext keys; reveal the generated key once.
-- Persist Better Auth rate-limit counters in PostgreSQL so limits are shared across serverless instances and deployments.
+- Persist Better Auth rate-limit counters in PostgreSQL through a custom storage implementation using one atomic conditional UPSERT per request. This preserves Better Auth's path-specific limits while preventing concurrent requests from over-incrementing a shared counter.
+- Prune stale rate-limit rows older than 24 hours in bounded batches under a transaction-level advisory lock. Cleanup is best-effort and does not block authentication when maintenance fails.
+- Integration-test the actual Better Auth handler with 40 concurrent general requests (30 allowed, 10 rate-limited) and a separate concurrent sign-up burst (3 allowed, 1 rate-limited), with no 5xx responses.
 - Apply workspace membership checks in every protected API handler.
 - Apply minimum role checks to key issuance, project creation, and report writes.
 - Validate request bodies with Zod and bound event payloads to 256 KB and 100 events.

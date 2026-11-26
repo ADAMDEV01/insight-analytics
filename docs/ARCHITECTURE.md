@@ -2,7 +2,7 @@
 
 ## Runtime boundaries
 
-The web application is a modular monolith on Next.js App Router. Server components render authenticated pages; Route Handlers expose JSON APIs. Better Auth owns identity and sessions. Its rate-limit counters are persisted in PostgreSQL through the Drizzle adapter, avoiding process-local counters across serverless instances. Drizzle defines and queries the PostgreSQL schema, while a small node-postgres pool is used for transactional outbox processing and analytical SQL.
+The web application is a modular monolith on Next.js App Router. Server components render authenticated pages; Route Handlers expose JSON APIs. Better Auth owns identity and sessions. Its custom rate-limit storage uses a single conditional PostgreSQL UPSERT to atomically create, reset, or increment each IP-and-path counter, so limits are shared across serverless instances without a read/write race. Expired counters are pruned in bounded batches using a transaction-level advisory lock. Drizzle defines and queries the PostgreSQL schema, while the node-postgres pool handles rate-limit upserts, transactional outbox processing, and analytical SQL.
 
 ## Event path
 

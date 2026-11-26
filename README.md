@@ -16,7 +16,7 @@ INSIGHT is a full-stack product analytics platform focused on a responsive analy
 ## Features
 
 - Password registration, sign-in, sign-out, and persistent sessions
-- PostgreSQL-backed Better Auth rate limiting shared across serverless instances
+- PostgreSQL-backed Better Auth rate limiting using atomic UPSERT counters shared across serverless instances, with bounded expiry cleanup
 - Automatically provisioned personal workspace and initial project
 - Workspace membership roles: owner, admin, analyst, viewer
 - Project creation, key listing, one-time display, and immediate key revocation
@@ -116,7 +116,7 @@ See packages/sdk/README.md. Build the SDK package by running npm install and npm
 
 ## Production verification checklist
 
-- [x] GitHub CI on the final verification baseline: 40 unit/PostgreSQL tests across 10 files, 6 Playwright browser tests (Desktop and Mobile), production build, SDK clean install/typecheck, CodeQL, and dependency audits passed.
+- [x] GitHub CI on the final verification baseline: 41 unit/PostgreSQL tests across 10 files, 6 Playwright browser tests (Desktop and Mobile), production build, SDK clean install/typecheck, CodeQL, and dependency audits passed.
 - [x] Apply all committed SQL migrations, including the persistent Better Auth rate-limit table, to Neon Production and Preview before the next release.
 - [x] Vercel Production deployment completed for the current auth-origin and favicon fixes.
 - [ ] Confirm account registration, sign-in, sign-out, and session restoration in the production browser.
