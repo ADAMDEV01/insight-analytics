@@ -38,7 +38,7 @@ See docs/ARCHITECTURE.md, docs/PRODUCT.md, and docs/SECURITY.md.
 
 Requirements: Node.js 24.x and PostgreSQL 16+ (Neon is supported).
 
-1. Run npm install.
+1. Run npm ci.
 2. Copy .env.example to .env.local.
 3. Set DATABASE_URL to a pooled PostgreSQL URL for application traffic.
 4. Set MIGRATION_DATABASE_URL to a direct, non-pooled PostgreSQL URL for schema migrations.
@@ -72,7 +72,7 @@ Never commit .env.local or print secret values in CI logs.
 - npm run db:migrate — apply ordered SQL migrations from db/migrations
 - npm run db:studio — Drizzle Studio
 
-From packages/sdk, run npm install followed by npm run build to compile the browser SDK.
+From packages/sdk, run npm ci followed by npm run build to compile the browser SDK.
 
 New schema changes should be added as the next ordered SQL file in db/migrations. The migration runner records applied filenames in insight_schema_migrations and serializes concurrent migration runs with a PostgreSQL advisory lock.
 
