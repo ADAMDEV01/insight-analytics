@@ -1,8 +1,8 @@
 # INSIGHT — Product Analytics Platform
 
-INSIGHT is a full-stack product analytics platform focused on a premium, responsive analytics experience backed by real PostgreSQL persistence. It includes workspace-scoped projects, publishable ingestion keys, event ingestion, an outbox processor, analytics endpoints, and a browser SDK.
+INSIGHT is a full-stack product analytics platform focused on a responsive analytics experience backed by PostgreSQL. It includes workspace-scoped projects, publishable ingestion keys, event ingestion, a transactional outbox processor, analytics endpoints, and a browser SDK.
 
-**Verification status:** code is committed, but external database provisioning, migration execution, browser-based local verification, and Vercel deployment still need to be completed with owner credentials. Do not describe these as complete until verified.
+**Production status:** the application is deployed to Vercel and the Neon Production and Preview databases have been provisioned and migrated. CI and the production build have passed. The owner should still complete an end-to-end production smoke test (account registration/sign-in, project key creation, browser event ingestion, outbox processing, and analytics verification) before onboarding real users.
 
 ## Stack
 
@@ -19,7 +19,7 @@ INSIGHT is a full-stack product analytics platform focused on a premium, respons
 - Automatically provisioned personal workspace and initial project
 - Workspace membership roles: owner, admin, analyst, viewer
 - Project creation, key listing, one-time display, and immediate key revocation
-- Batch event ingestion with schema validation, origin allowlists, request rate limits, and idempotency
+- Batch event ingestion with schema validation, size limits, origin allowlists, request rate limits, and idempotency
 - Transactional outbox processing using PostgreSQL row locks, per-event savepoints, bounded retries, and terminal failure state
 - Event explorer with search, pagination, and CSV export (10,000-row cap)
 - Persisted daily event counts, per-event unique users, and project-wide active users
@@ -57,7 +57,7 @@ Never commit .env.local or print secret values in CI logs.
 | BETTER_AUTH_URL | Canonical server auth URL |
 | NEXT_PUBLIC_APP_URL | Browser-visible application origin |
 | CRON_SECRET | Bearer secret protecting cron processor |
-| INGEST_RATE_LIMIT_PER_MINUTE | Optional per-key request limit; defaults to 300 |
+| INGEST_RATE_LIMIT_PER_MINUTE | Optional per-key rate limit; defaults to 300 |
 
 ## Commands
 
@@ -104,22 +104,16 @@ See packages/sdk/README.md. Build the SDK package by running npm install and npm
 5. Confirm the Vercel Cron schedule is active and CRON_SECRET matches the deployed environment. The committed schedule runs daily to support Vercel Hobby; Pro can use a five-minute schedule by changing vercel.json to */5 * * * *.
 6. Create a project key, send test events, wait for processing, then verify the Events and Overview pages.
 
-## Verification checklist
+## Production verification checklist
 
-- [ ] npm install completes and the dependency tree is stable
-- [ ] npm run lint, npm run typecheck, and npm run test pass
-- [ ] npm run build completes with environment values configured
-- [ ] npm run test:e2e passes in a browser
-- [ ] Migrations apply to a clean Postgres database
-- [ ] Sign-up/sign-in/sign-out and session restoration work
-- [ ] Cross-workspace access is denied by server-side membership checks
-- [ ] Non-admin key creation and project creation are denied
-- [ ] Invalid key, invalid origin, oversized batch, malformed event, and rate limit are handled
-- [ ] Duplicate idempotency keys do not duplicate raw events
-- [ ] Concurrent cron invocations do not process the same event twice
-- [ ] Retry and terminal failure behavior is verified
-- [ ] All analytics are derived from persisted events and aggregates
-- [ ] Vercel deployment, database connection, and cron schedule are verified
+- [x] GitHub CI quality, PostgreSQL integration tests, production build, Playwright browser smoke test, and browser SDK build passed on the pre-auth-fix baseline.
+- [x] Neon Production and Preview databases provisioned and initial SQL migration applied.
+- [x] Vercel Production deployment completed for the current auth-origin and favicon fixes.
+- [ ] Confirm account registration, sign-in, sign-out, and session restoration in the production browser.
+- [ ] Confirm cross-workspace access is denied by server-side membership checks.
+- [ ] Create a project key and send test events from the browser SDK.
+- [ ] Verify event outbox processing, analytics rollups, funnels, retention, and CSV export against real test events.
+- [ ] Confirm Vercel Cron runs successfully and monitor runtime errors.
 
 ## Known scope boundaries
 
