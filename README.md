@@ -109,7 +109,7 @@ See packages/sdk/README.md. Build the SDK package by running npm install and npm
 ## Production verification checklist
 
 - [x] GitHub CI quality, PostgreSQL integration tests, production build, Playwright browser smoke test, and browser SDK build passed for the persistent-auth-rate-limit change.
-- [ ] Apply all committed SQL migrations, including the persistent Better Auth rate-limit table, to Neon Production and Preview before the next release.
+- [x] Apply all committed SQL migrations, including the persistent Better Auth rate-limit table, to Neon Production and Preview before the next release.
 - [x] Vercel Production deployment completed for the current auth-origin and favicon fixes.
 - [ ] Confirm account registration, sign-in, sign-out, and session restoration in the production browser.
 - [ ] Confirm cross-workspace access is denied by server-side membership checks.
