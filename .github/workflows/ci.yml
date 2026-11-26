@@ -50,8 +50,38 @@ jobs:
         run: npm install --global npm@11.21.2
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
+      - name: Create production-only dependency lockfile
+        run: |
+          set -euo pipefail
+          audit_dir="$RUNNER_TEMP/insight-production-audit"
+          mkdir -p "$audit_dir"
+          node - "$audit_dir" <<'NODE'
+          const fs = require("node:fs");
+          const path = require("node:path");
+          const destination = process.argv[2];
+          const manifest = JSON.parse(fs.readFileSync("package.json", "utf8"));
+          const lock = JSON.parse(fs.readFileSync("package-lock.json", "utf8"));
+          const productionDependencies = {};
+          for (const name of Object.keys(manifest.dependencies || {})) {
+            const entry = lock.packages[`node_modules/${name}`];
+            if (!entry || !entry.version) {
+              throw new Error(`Missing locked production dependency: ${name}`);
+            }
+            productionDependencies[name] = entry.version;
+          }
+          const productionManifest = {
+            name: manifest.name + "-production-audit",
+            version: manifest.version,
+            private: true,
+            dependencies: productionDependencies
+          };
+          fs.writeFileSync(path.join(destination, "package.json"), JSON.stringify(productionManifest, null, 2) + "\\n");
+          fs.copyFileSync("package-lock.json", path.join(destination, "package-lock.json"));
+          NODE
+          npm install --prefix "$audit_dir" --package-lock-only --ignore-scripts --no-audit --no-fund
+          npm ci --prefix "$audit_dir" --ignore-scripts --no-audit --no-fund
       - name: Audit production dependencies
-        run: npm audit --omit=dev --audit-level=moderate
+        run: npm audit --prefix "$RUNNER_TEMP/insight-production-audit" --audit-level=moderate
       - name: Audit all dependencies for high-severity advisories
         run: npm audit --audit-level=high
       - name: Audit browser SDK dependencies
