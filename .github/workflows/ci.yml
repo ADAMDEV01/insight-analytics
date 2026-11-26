@@ -35,6 +35,7 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/insight
       MIGRATION_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/insight
       BETTER_AUTH_SECRET: ci-only-secret-that-is-long-enough-for-builds
+      BETTER_AUTH_RATE_LIMIT_MAX: "30"
       BETTER_AUTH_URL: http://localhost:3000
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       CRON_SECRET: ci-only-cron-secret
