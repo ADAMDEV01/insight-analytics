@@ -28,7 +28,8 @@ async function cleanupExpiredRateLimits(now: number) {
        )
        DELETE FROM "rateLimit" AS limits
        USING stale
-       WHERE limits.id = stale.id`,
+       WHERE limits.id = stale.id
+         AND limits."lastRequest" < $1`,
       [now - RATE_LIMIT_RETENTION_MS, CLEANUP_ADVISORY_LOCK],
     );
   } catch (error) {
