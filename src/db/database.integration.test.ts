@@ -90,8 +90,9 @@ describe.skipIf(!enabled)("PostgreSQL event ingestion and outbox", () => {
     process.env.INGEST_RATE_LIMIT_PER_MINUTE = "5";
 
     try {
+      const bucketTime = new Date();
       const results = await Promise.all(
-        Array.from({ length: 20 }, () => consumeIngestRateLimit(apiKeyId)),
+        Array.from({ length: 20 }, () => consumeIngestRateLimit(apiKeyId, bucketTime)),
       );
       const [bucket] = await db
         .select({ hits: ingestRateLimits.hits })
