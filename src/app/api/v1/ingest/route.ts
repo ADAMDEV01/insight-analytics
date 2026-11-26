@@ -1,7 +1,7 @@
 import { after } from "next/server";
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { pool, db } from "@/db";
+import { db } from "@/db";
 import { apiKeys } from "@/db/schema";
 import { apiError, apiSuccess } from "@/lib/http";
 import { hashApiKey } from "@/lib/crypto";
@@ -9,6 +9,7 @@ import { persistEventBatch } from "@/lib/ingestion";
 import { processOutboxBatch } from "@/lib/process-outbox";
 import { readBoundedText } from "@/lib/read-bounded-text";
 import { parseContentLength } from "@/lib/content-length";
+import { consumeIngestRateLimit } from "@/lib/ingest-rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -68,6 +69,10 @@ export async function POST(request: Request) {
       return cors(apiError("Payload exceeds the 256 KB limit.", 413, "PAYLOAD_TOO_LARGE"), origin);
     }
 
+    if (!(await consumeIngestRateLimit(key.id))) {
+      return cors(apiError("Project ingestion rate limit reached. Retry next minute.", 429, "RATE_LIMITED"), origin);
+    }
+
     // Enforce the cap while reading, including chunked requests without Content-Length.
     const text = await readBoundedText(request, MAX_INGEST_BODY_BYTES);
     if (text === null) {
@@ -79,18 +84,6 @@ export async function POST(request: Request) {
 
     const parsed = batchSchema.safeParse(raw);
     if (!parsed.success) return cors(apiError(parsed.error.issues[0]?.message || "Invalid event batch.", 422, "VALIDATION_ERROR"), origin);
-
-    const configuredLimit = Number(process.env.INGEST_RATE_LIMIT_PER_MINUTE);
-    const limit = Number.isSafeInteger(configuredLimit) && configuredLimit > 0
-      ? Math.min(5000, configuredLimit)
-      : 300;
-    const bucketAt = new Date();
-    bucketAt.setUTCSeconds(0, 0);
-    const rate = await pool.query(
-      "INSERT INTO ingest_rate_limits (api_key_id,bucket_at,hits) VALUES ($1,$2,1) ON CONFLICT (api_key_id,bucket_at) DO UPDATE SET hits=ingest_rate_limits.hits+1 WHERE ingest_rate_limits.hits<$3 RETURNING hits",
-      [key.id, bucketAt, limit],
-    );
-    if (rate.rowCount === 0) return cors(apiError("Project ingestion rate limit reached. Retry next minute.", 429, "RATE_LIMITED"), origin);
 
     const result = await persistEventBatch(key.projectId, parsed.data.events);
     await db.update(apiKeys).set({ lastUsedAt: new Date() }).where(eq(apiKeys.id, key.id));
