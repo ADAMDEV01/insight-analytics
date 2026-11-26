@@ -11,6 +11,11 @@ const trustedOrigins = Array.from(new Set([
   process.env.NEXT_PUBLIC_APP_URL,
   process.env.BETTER_AUTH_URL,
   deploymentOrigin,
+  // Vercel's stable Git branch alias is a distinct browser Origin from the
+  // production domain and the per-deployment VERCEL_URL.
+  "https://insight-analytics-snowy.vercel.app",
+  "https://insight-analytics-addrryhby-5992.vercel.app",
+  "https://insight-analytics-git-main-addrryhby-5992.vercel.app",
   "http://localhost:3000",
 ].filter((origin): origin is string => Boolean(origin))));
 
