@@ -28,6 +28,17 @@ const MAX_BATCH_BYTES = 220_000;
 const MAX_PROPERTIES_BYTES = 20_000;
 const encoder = new TextEncoder();
 
+function createSecureId(): string {
+  const crypto = globalThis.crypto;
+  if (typeof crypto?.randomUUID === "function") return crypto.randomUUID();
+  if (typeof crypto?.getRandomValues === "function") {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+  throw new Error("INSIGHT requires secure browser cryptography to generate event identifiers.");
+}
+
 export function createInsight(options: InsightOptions): InsightClient {
   if (!options.apiKey.startsWith("ia_pub_")) {
     throw new Error("INSIGHT requires a publishable project key.");
@@ -38,7 +49,7 @@ export function createInsight(options: InsightOptions): InsightClient {
   const flushAt = Math.max(1, Math.min(MAX_BATCH_EVENTS, options.flushAt ?? 10));
   const flushIntervalMs = Math.max(1000, options.flushIntervalMs ?? 5000);
   let distinctId = "anonymous";
-  const sessionId = globalThis.crypto?.randomUUID?.() || String(Date.now());
+  const sessionId = createSecureId();
   let queue: InsightEvent[] = [];
   let inFlightCount = 0;
   let flushing: Promise<void> | null = null;
@@ -159,8 +170,7 @@ export function createInsight(options: InsightOptions): InsightClient {
       sessionId,
       properties: safeProperties,
       timestamp: new Date().toISOString(),
-      idempotencyKey: globalThis.crypto?.randomUUID?.() ||
-        (Date.now().toString(36) + Math.random().toString(36).slice(2)),
+      idempotencyKey: createSecureId(),
     });
 
     if (queue.length >= flushAt && !flushing) void flush().catch(() => undefined);

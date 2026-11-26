@@ -41,7 +41,7 @@ Requirements: Node.js 24.x and PostgreSQL 16+ (Neon is supported).
 1. Run npm ci.
 2. Copy .env.example to .env.local.
 3. Set DATABASE_URL to a pooled PostgreSQL URL for application traffic.
-4. Set MIGRATION_DATABASE_URL to a direct, non-pooled PostgreSQL URL for schema migrations.
+4. Keep MIGRATION_DATABASE_URL as a direct, non-pooled connection for the trusted migration operator or CI migration environment; do not expose it to browser code or the deployed application runtime.
 5. Configure BETTER_AUTH_SECRET (32+ characters), BETTER_AUTH_URL, NEXT_PUBLIC_APP_URL, and CRON_SECRET.
 6. Run npm run db:migrate.
 7. Run npm run dev.
@@ -107,7 +107,7 @@ See packages/sdk/README.md. Build the SDK package by running npm install and npm
 ## Deploying
 
 1. Provision Neon Postgres in a region supported by your Vercel app and obtain pooled and direct connection strings.
-2. Add the variables above to Vercel Production and Preview environments.
+2. Add only runtime variables (DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL, NEXT_PUBLIC_APP_URL, and CRON_SECRET) to Vercel Production and Preview. Keep MIGRATION_DATABASE_URL in the restricted migration environment, not in the deployed runtime.
 3. Apply SQL migrations to the target database using MIGRATION_DATABASE_URL before serving traffic.
 4. Deploy the repository to Vercel.
 5. Confirm the Vercel Cron schedule is active and CRON_SECRET matches the deployed environment. The committed schedule runs daily to support Vercel Hobby; Pro can use a five-minute schedule by changing vercel.json to */5 * * * *.
@@ -115,7 +115,7 @@ See packages/sdk/README.md. Build the SDK package by running npm install and npm
 
 ## Production verification checklist
 
-- [x] GitHub CI quality, PostgreSQL integration tests, production build, Playwright browser smoke test, and browser SDK build passed for the persistent-auth-rate-limit change.
+- [x] GitHub CI: 39 unit/PostgreSQL tests across 10 files, 4 Playwright browser tests, production build, SDK typecheck, and high-severity npm audits passed on the security-automation baseline.
 - [x] Apply all committed SQL migrations, including the persistent Better Auth rate-limit table, to Neon Production and Preview before the next release.
 - [x] Vercel Production deployment completed for the current auth-origin and favicon fixes.
 - [ ] Confirm account registration, sign-in, sign-out, and session restoration in the production browser.

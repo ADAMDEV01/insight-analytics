@@ -54,6 +54,31 @@ describe("INSIGHT browser SDK", () => {
     expect(retriedEvent.idempotencyKey).toBe(firstEvent.idempotencyKey);
   });
 
+  it("creates cryptographically strong unique event identifiers", async () => {
+    const bodies: string[] = [];
+    const client = createInsight({
+      apiKey,
+      endpoint: "https://insight.example",
+      flushAt: 2,
+      fetcher: async (_input, init) => {
+        bodies.push(String(init?.body ?? ""));
+        return new Response(null, { status: 202 });
+      },
+    });
+
+    client.track("page_view", { path: "/one" });
+    client.track("page_view", { path: "/two" });
+    await client.flush();
+
+    const events = JSON.parse(bodies[0]) as {
+      events: Array<{ idempotencyKey: string; sessionId: string }>;
+    };
+    expect(events.events).toHaveLength(2);
+    expect(events.events[0].idempotencyKey).not.toBe(events.events[1].idempotencyKey);
+    expect(events.events[0].sessionId).toBe(events.events[1].sessionId);
+    expect(events.events[0].idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
   it("rejects non-object and oversized event properties before queueing", () => {
     const client = createInsight({
       apiKey,
