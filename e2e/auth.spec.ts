@@ -1,22 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 
-async function expectSuccessfulAuthResponse(
-  responsePromise: Promise<import("@playwright/test").Response>,
-  action: string,
-) {
-  const response = await responsePromise;
-  let body: unknown;
+async function expectDashboardOrError(page: import("@playwright/test").Page, action: string) {
   try {
-    body = await response.json();
+    await page.waitForURL(/\/overview$/, { timeout: 30_000 });
   } catch {
-    body = await response.text();
+    const message = await page.getByRole("alert").textContent().catch(() => null);
+    throw new Error(`${action} did not complete. ${message || "No visible authentication error was rendered."}`);
   }
-
-  expect(
-    response.ok() && !(typeof body === "object" && body !== null && "error" in body),
-    `${action} failed (HTTP ${response.status()}): ${JSON.stringify(body)}`,
-  ).toBe(true);
+  await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
 }
 
 test("a user can register, keep a session, sign out, and sign back in", async ({ page }) => {
@@ -27,15 +19,8 @@ test("a user can register, keep a session, sign out, and sign back in", async ({
   await page.getByLabel("Full name").fill("INSIGHT CI User");
   await page.getByLabel("Email address").fill(email);
   await page.getByLabel("Password").fill(password);
-
-  const signUpResponse = page.waitForResponse(
-    (response) => response.url().includes("/api/auth/sign-up/email") && response.request().method() === "POST",
-  );
   await page.getByRole("button", { name: "Create account", exact: true }).click();
-  await expectSuccessfulAuthResponse(signUpResponse, "Account registration");
-
-  await expect(page).toHaveURL(/\/overview$/, { timeout: 30_000 });
-  await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
+  await expectDashboardOrError(page, "Account registration");
 
   await page.reload();
   await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
@@ -43,18 +28,12 @@ test("a user can register, keep a session, sign out, and sign back in", async ({
   if ((page.viewportSize()?.width ?? 1280) < 1024) {
     await page.getByRole("button", { name: "Open navigation" }).click();
   }
-  await expect(page.getByText(email, { exact: true })).toBeVisible();
+  await expect(page.getByRole("complementary").getByText(email, { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL(/\/sign-in$/, { timeout: 15_000 });
 
   await page.getByLabel("Email address").fill(email);
   await page.getByLabel("Password").fill(password);
-  const signInResponse = page.waitForResponse(
-    (response) => response.url().includes("/api/auth/sign-in/email") && response.request().method() === "POST",
-  );
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expectSuccessfulAuthResponse(signInResponse, "Account sign-in");
-
-  await expect(page).toHaveURL(/\/overview$/, { timeout: 30_000 });
-  await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
+  await expectDashboardOrError(page, "Account sign-in");
 });

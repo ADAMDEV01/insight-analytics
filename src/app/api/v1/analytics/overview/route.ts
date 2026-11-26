@@ -2,7 +2,7 @@ import { pool } from "@/db";
 import { apiError, apiSuccess } from "@/lib/http";
 import { getRequiredSession } from "@/lib/session";
 import { getProjectAccess } from "@/lib/permissions";
-import { normalizeDateRange } from "@/lib/analytics";
+import { buildDailySeries, normalizeDateRange } from "@/lib/analytics";
 
 export async function GET(request: Request) {
   const session = await getRequiredSession(request);
@@ -28,14 +28,12 @@ export async function GET(request: Request) {
     pool.query("SELECT COUNT(DISTINCT session_id)::int AS value FROM events WHERE project_id=$1 AND occurred_at >= $2::date AND occurred_at < ($3::date + INTERVAL '1 day') AND session_id IS NOT NULL", [projectId, range.from, range.to]),
     pool.query("SELECT event_name AS \"eventName\", SUM(event_count)::int AS count FROM daily_rollups WHERE project_id=$1 AND bucket_date BETWEEN $2::date AND $3::date GROUP BY event_name ORDER BY count DESC LIMIT 6", [projectId, range.from, range.to]),
   ]);
-  const map = new Map<string, { day: string; events: number; activeUsers: number }>();
-  for (const row of seriesEvents.rows) map.set(row.day, { day: row.day, events: row.events, activeUsers: 0 });
-  for (const row of seriesUsers.rows) { const current = map.get(row.day) || { day: row.day, events: 0, activeUsers: 0 }; current.activeUsers = row.users; map.set(row.day, current); }
+
   return apiSuccess({
     range,
     totals: { events: currentEvents.rows[0]?.value || 0, activeUsers: currentUsers.rows[0]?.value || 0, sessions: sessions.rows[0]?.value || 0, uniqueUserEvents: currentEvents.rows[0]?.pairs || 0 },
     previous: { events: previousEvents.rows[0]?.value || 0, activeUsers: previousUsers.rows[0]?.value || 0 },
-    series: Array.from(map.values()).sort((a, b) => a.day.localeCompare(b.day)),
+    series: buildDailySeries(range.from, range.days, seriesEvents.rows, seriesUsers.rows),
     topEvents: topEvents.rows,
   });
 }

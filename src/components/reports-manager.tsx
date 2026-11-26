@@ -101,10 +101,10 @@ export function ReportsManager() {
 
   return (
     <div className="space-y-6">
-      <div><p className="mb-2 text-xs font-bold uppercase tracking-[.18em] text-accent">Reusable analysis</p><h1 className="text-3xl font-semibold tracking-tight">Saved reports</h1><p className="mt-2 text-sm text-muted">Keep named snapshots of the analysis you return to.</p></div>
+      <div><p className="mb-2 text-xs font-bold uppercase tracking-[.18em] text-accent">Reusable analysis</p><h1 className="text-3xl font-semibold tracking-tight">Saved reports</h1><p className="mt-2 text-sm text-muted">Keep named definitions for the analyses you return to.</p></div>
       <div className="grid gap-5 xl:grid-cols-[.8fr_1.2fr]">
         <Card className="p-5">
-          <div className="mb-5 flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-accent-soft text-accent"><Save size={18} /></span><div><h2 className="text-sm font-semibold">Save a report</h2><p className="mt-1 text-xs text-muted">Reports are persisted in your workspace.</p></div></div>
+          <div className="mb-5 flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-accent-soft text-accent"><Save size={18} /></span><div><h2 className="text-sm font-semibold">Save a report definition</h2><p className="mt-1 text-xs text-muted">The report name and configuration are stored in your workspace.</p></div></div>
           <form onSubmit={save} className="space-y-3">
             <label className="block text-xs font-medium text-muted">Project</label>
             <select value={projectId} onChange={(event) => { setLoading(true); setProjectId(event.target.value); }} className="surface-raised h-10 w-full rounded-xl px-3 text-sm">{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select>

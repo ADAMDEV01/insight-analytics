@@ -23,6 +23,7 @@ export default defineConfig({
       BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET || "local-test-secret-change-this-32-characters",
       BETTER_AUTH_URL: "http://localhost:3000",
       NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+      BETTER_AUTH_RATE_LIMIT_MAX: "120",
       CRON_SECRET: process.env.CRON_SECRET || "local-test-cron-secret",
     },
   },

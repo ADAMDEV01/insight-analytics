@@ -15,6 +15,7 @@ describe.skipIf(!enabled)("PostgreSQL event ingestion and outbox", () => {
   const strangerId = "integration-stranger-" + suffix;
   let workspaceId = "";
   let projectId = "";
+  const eventCount = 15;
 
   beforeAll(async () => {
     await db.insert(users).values([
@@ -46,36 +47,36 @@ describe.skipIf(!enabled)("PostgreSQL event ingestion and outbox", () => {
     expect(await getProjectAccess(ownerId, projectId)).not.toBeNull();
     expect(await getProjectAccess(strangerId, projectId)).toBeNull();
 
-    const event = {
+    const events = Array.from({ length: eventCount }, (_, index) => ({
       eventName: "integration_purchase",
-      distinctId: "user-integration-1",
-      sessionId: "session-integration-1",
-      properties: { plan: "pro", amount: 42 },
+      distinctId: "user-integration-" + index,
+      sessionId: "session-integration-" + index,
+      properties: { plan: "pro", amount: 42 + index },
       timestamp: new Date().toISOString(),
-      idempotencyKey: "integration-" + suffix,
-    };
+      idempotencyKey: "integration-" + suffix + "-" + index,
+    }));
 
-    const first = await persistEventBatch(projectId, [event, event]);
-    const retry = await persistEventBatch(projectId, [event]);
+    const first = await persistEventBatch(projectId, [...events, events[0]]);
+    const retry = await persistEventBatch(projectId, [events[0]]);
 
-    expect(first).toEqual({ accepted: 1, duplicates: 1 });
+    expect(first).toEqual({ accepted: eventCount, duplicates: 1 });
     expect(retry).toEqual({ accepted: 0, duplicates: 1 });
   });
 
-  it("processes each outbox row once under concurrent workers", async () => {
-    const results = await Promise.all([processOutboxBatch(10), processOutboxBatch(10)]);
-    expect(results.reduce((sum, item) => sum + item.processed, 0)).toBe(1);
-    expect(results.reduce((sum, item) => sum + item.claimed, 0)).toBe(1);
+  it("processes the complete batch once under concurrent workers", async () => {
+    const results = await Promise.all([processOutboxBatch(100), processOutboxBatch(100)]);
+    expect(results.reduce((sum, item) => sum + item.processed, 0)).toBe(eventCount);
+    expect(results.reduce((sum, item) => sum + item.claimed, 0)).toBe(eventCount);
 
     const aggregate = await pool.query(
       "SELECT event_count, unique_users FROM daily_rollups WHERE project_id=$1 AND event_name='integration_purchase'",
       [projectId],
     );
     expect(aggregate.rows).toHaveLength(1);
-    expect(Number(aggregate.rows[0].event_count)).toBe(1);
-    expect(Number(aggregate.rows[0].unique_users)).toBe(1);
+    expect(Number(aggregate.rows[0].event_count)).toBe(eventCount);
+    expect(Number(aggregate.rows[0].unique_users)).toBe(eventCount);
 
     const raw = await pool.query("SELECT COUNT(*)::int AS count FROM events WHERE project_id=$1", [projectId]);
-    expect(raw.rows[0].count).toBe(1);
+    expect(raw.rows[0].count).toBe(eventCount);
   });
 });

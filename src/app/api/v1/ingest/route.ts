@@ -11,8 +11,10 @@ import { readBoundedText } from "@/lib/read-bounded-text";
 import { parseContentLength } from "@/lib/content-length";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const MAX_INGEST_BODY_BYTES = 256_000;
+const MAX_INGEST_EVENTS = 100;
 
 const eventSchema = z.object({
   eventName: z.string().trim().min(1).max(120).regex(/^[a-zA-Z0-9_.:-]+$/),
@@ -22,7 +24,7 @@ const eventSchema = z.object({
   timestamp: z.string().datetime().optional(),
   idempotencyKey: z.string().min(8).max(128),
 }).strict();
-const batchSchema = z.object({ events: z.array(eventSchema).min(1).max(100) }).strict();
+const batchSchema = z.object({ events: z.array(eventSchema).min(1).max(MAX_INGEST_EVENTS) }).strict();
 
 function cors(response: Response, origin: string | null) {
   if (origin) {
@@ -78,7 +80,10 @@ export async function POST(request: Request) {
       return cors(apiError("This origin is not allowed for the project key.", 403, "ORIGIN_NOT_ALLOWED"), null);
     }
 
-    const limit = Math.max(1, Math.min(5000, Number(process.env.INGEST_RATE_LIMIT_PER_MINUTE || 300)));
+    const configuredLimit = Number(process.env.INGEST_RATE_LIMIT_PER_MINUTE);
+    const limit = Number.isSafeInteger(configuredLimit) && configuredLimit > 0
+      ? Math.min(5000, configuredLimit)
+      : 300;
     const bucketAt = new Date();
     bucketAt.setUTCSeconds(0, 0);
     const rate = await pool.query(
@@ -92,7 +97,8 @@ export async function POST(request: Request) {
     if (result.accepted > 0) {
       after(async () => {
         try {
-          await processOutboxBatch(10);
+          // Drain at least one maximum-size client batch in the response lifecycle.
+          await processOutboxBatch(MAX_INGEST_EVENTS);
         } catch (error) {
           console.error("INSIGHT background event processing failed", error);
         }

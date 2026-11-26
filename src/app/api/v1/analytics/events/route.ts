@@ -4,8 +4,11 @@ import { getRequiredSession } from "@/lib/session";
 import { getProjectAccess } from "@/lib/permissions";
 
 function boundedInteger(value: string | null, fallback: number, min: number, max: number) {
+  if (value === null || value.trim() === "") return fallback;
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? Math.min(max, Math.max(min, Math.floor(parsed))) : fallback;
+  return Number.isFinite(parsed)
+    ? Math.min(max, Math.max(min, Math.floor(parsed)))
+    : fallback;
 }
 
 export async function GET(request: Request) {
