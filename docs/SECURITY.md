@@ -2,6 +2,7 @@
 
 - Keep database, auth, and cron credentials server-side only.
 - Store publishable key hashes, never plaintext keys; reveal the generated key once.
+- Persist Better Auth rate-limit counters in PostgreSQL so limits are shared across serverless instances and deployments.
 - Apply workspace membership checks in every protected API handler.
 - Apply minimum role checks to key issuance, project creation, and report writes.
 - Validate request bodies with Zod and bound event payloads to 256 KB and 100 events.

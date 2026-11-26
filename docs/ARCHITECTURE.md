@@ -2,7 +2,7 @@
 
 ## Runtime boundaries
 
-The web application is a modular monolith on Next.js App Router. Server components render authenticated pages; Route Handlers expose JSON APIs. Better Auth owns identity and sessions. Drizzle defines and queries the PostgreSQL schema, while a small node-postgres pool is used for transactional outbox processing and analytical SQL.
+The web application is a modular monolith on Next.js App Router. Server components render authenticated pages; Route Handlers expose JSON APIs. Better Auth owns identity and sessions. Its rate-limit counters are persisted in PostgreSQL through the Drizzle adapter, avoiding process-local counters across serverless instances. Drizzle defines and queries the PostgreSQL schema, while a small node-postgres pool is used for transactional outbox processing and analytical SQL.
 
 ## Event path
 

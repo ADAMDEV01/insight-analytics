@@ -16,6 +16,7 @@ INSIGHT is a full-stack product analytics platform focused on a responsive analy
 ## Features
 
 - Password registration, sign-in, sign-out, and persistent sessions
+- PostgreSQL-backed Better Auth rate limiting shared across serverless instances
 - Automatically provisioned personal workspace and initial project
 - Workspace membership roles: owner, admin, analyst, viewer
 - Project creation, key listing, one-time display, and immediate key revocation
@@ -35,7 +36,7 @@ See docs/ARCHITECTURE.md, docs/PRODUCT.md, and docs/SECURITY.md.
 
 ## Requirements and setup
 
-Requirements: Node.js 22.12+ and PostgreSQL 16+ (Neon is supported).
+Requirements: Node.js 24.x and PostgreSQL 16+ (Neon is supported).
 
 1. Run npm install.
 2. Copy .env.example to .env.local.
@@ -54,6 +55,7 @@ Never commit .env.local or print secret values in CI logs.
 | DATABASE_URL | Pooled Postgres connection used by app runtime |
 | MIGRATION_DATABASE_URL | Direct Postgres connection used by migration runner |
 | BETTER_AUTH_SECRET | Better Auth signing secret, at least 32 characters |
+| BETTER_AUTH_RATE_LIMIT_MAX | Optional global auth request limit per 60-second window; defaults to 30 and is capped at 120 |
 | BETTER_AUTH_URL | Canonical server auth URL |
 | NEXT_PUBLIC_APP_URL | Browser-visible application origin |
 | CRON_SECRET | Bearer secret protecting cron processor |
@@ -106,8 +108,8 @@ See packages/sdk/README.md. Build the SDK package by running npm install and npm
 
 ## Production verification checklist
 
-- [x] GitHub CI quality, PostgreSQL integration tests, production build, Playwright browser smoke test, and browser SDK build passed on the pre-auth-fix baseline.
-- [x] Neon Production and Preview databases provisioned and initial SQL migration applied.
+- [x] GitHub CI quality, PostgreSQL integration tests, production build, Playwright browser smoke test, and browser SDK build passed for the persistent-auth-rate-limit change.
+- [ ] Apply all committed SQL migrations, including the persistent Better Auth rate-limit table, to Neon Production and Preview before the next release.
 - [x] Vercel Production deployment completed for the current auth-origin and favicon fixes.
 - [ ] Confirm account registration, sign-in, sign-out, and session restoration in the production browser.
 - [ ] Confirm cross-workspace access is denied by server-side membership checks.
