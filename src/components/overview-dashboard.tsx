@@ -94,7 +94,6 @@ export function OverviewDashboard() {
     if (!projectId) return;
     let active = true;
     const currentKey = projectId + ":" + days + ":" + refreshToken;
-    setError("");
     fetch("/api/v1/analytics/overview?projectId=" + encodeURIComponent(projectId) + "&days=" + days)
       .then(async (response) => {
         const payload = await response.json();
