@@ -143,7 +143,6 @@ export function OverviewDashboard() {
     <div className="space-y-8">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-[.16em] text-muted">Product intelligence</p>
           <h1 className="text-3xl font-semibold tracking-tight">Overview</h1>
           <p className="mt-2 text-sm text-muted">A clear view of how people experience your product.</p>
         </div>
@@ -184,10 +183,10 @@ export function OverviewDashboard() {
               <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
                 Your workspace is ready. Connect a project and send an event; your activity, trends, and top events will appear here automatically.
               </p>
-              <ol className="mt-5 grid gap-3 text-xs text-muted sm:grid-cols-3">
-                <li className="flex items-start gap-2"><span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-panel-raised font-semibold text-foreground">1</span><span>Open Projects &amp; keys and create a publishable key.</span></li>
-                <li className="flex items-start gap-2"><span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-panel-raised font-semibold text-foreground">2</span><span>Install and initialize the browser SDK with that key.</span></li>
-                <li className="flex items-start gap-2"><span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-panel-raised font-semibold text-foreground">3</span><span>Call track() and refresh this page after processing.</span></li>
+              <ol className="mt-5 grid gap-3 text-xs text-muted md:grid-cols-3">
+                <li className="rounded-xl border border-subtle bg-panel-raised/50 p-3"><span className="grid h-7 w-7 place-items-center rounded-lg bg-panel font-semibold text-foreground">1</span><p className="mt-3 leading-5">Open Projects &amp; keys and create a publishable key.</p></li>
+                <li className="rounded-xl border border-subtle bg-panel-raised/50 p-3"><span className="grid h-7 w-7 place-items-center rounded-lg bg-panel font-semibold text-foreground">2</span><p className="mt-3 leading-5">Install and initialize the browser SDK with that key.</p></li>
+                <li className="rounded-xl border border-subtle bg-panel-raised/50 p-3"><span className="grid h-7 w-7 place-items-center rounded-lg bg-panel font-semibold text-foreground">3</span><p className="mt-3 leading-5">Call track() and refresh this page after processing.</p></li>
               </ol>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row lg:min-w-[190px] lg:flex-col">
