@@ -2,31 +2,45 @@
 
 :root {
   color-scheme: dark;
-  --background: #080b12;
-  --foreground: #edf1fa;
-  --muted: #929bb0;
-  --panel: #101522;
-  --panel-raised: #151c2b;
-  --border: rgba(148, 163, 184, .14);
-  --accent: #8b7bff;
-  --accent-soft: rgba(139, 123, 255, .14);
-  --success: #35c99a;
+  --background: #071417;
+  --foreground: #e8f4f2;
+  --muted: #91aaa8;
+  --panel: #0d2024;
+  --panel-raised: #132a2f;
+  --border: rgba(137, 190, 184, .15);
+  --accent: #32c6b4;
+  --accent-soft: rgba(50, 198, 180, .14);
+  --success: #5ed0a1;
   --danger: #fb7185;
-  --grid: rgba(148, 163, 184, .12);
+  --grid: rgba(137, 190, 184, .13);
+  --sidebar-background: #071b1e;
+  --sidebar-border: rgba(137, 190, 184, .16);
+  --header-background: rgba(7, 20, 23, .86);
+  --skeleton-base: #142a2e;
+  --skeleton-highlight: #254247;
+  --chart-primary: #32c6b4;
+  --chart-secondary: #71b9d5;
 }
 .light {
   color-scheme: light;
-  --background: #f5f7fb;
-  --foreground: #172033;
-  --muted: #667085;
+  --background: #f4f8f7;
+  --foreground: #142d2d;
+  --muted: #637c7b;
   --panel: #ffffff;
-  --panel-raised: #f8faff;
-  --border: rgba(29, 41, 57, .12);
-  --accent: #6558e8;
-  --accent-soft: rgba(101, 88, 232, .10);
-  --success: #07956d;
+  --panel-raised: #f0f7f6;
+  --border: rgba(29, 75, 72, .13);
+  --accent: #087f77;
+  --accent-soft: rgba(8, 127, 119, .10);
+  --success: #078a68;
   --danger: #e54862;
-  --grid: rgba(29, 41, 57, .10);
+  --grid: rgba(29, 75, 72, .12);
+  --sidebar-background: #edf5f3;
+  --sidebar-border: rgba(29, 75, 72, .14);
+  --header-background: rgba(244, 248, 247, .88);
+  --skeleton-base: #e4efed;
+  --skeleton-highlight: #f4faf9;
+  --chart-primary: #087f77;
+  --chart-secondary: #4298b7;
 }
 @theme inline {
   --color-background: var(--background);
@@ -40,13 +54,118 @@
 * { box-sizing: border-box; }
 html { min-height: 100%; background: var(--background); }
 body { min-height: 100vh; margin: 0; background: var(--background); color: var(--foreground); font-family: Arial, Helvetica, sans-serif; font-feature-settings: "ss01" on; }
-::selection { background: rgba(139, 123, 255, .28); }
+::selection { background: rgba(50, 198, 180, .26); }
 button, input, select, textarea { font: inherit; }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .surface { background: var(--panel); border: 1px solid var(--border); }
 .surface-raised { background: var(--panel-raised); border: 1px solid var(--border); }
 .text-muted { color: var(--muted); }
 .border-subtle { border-color: var(--border); }
-.grid-glow { background-image: radial-gradient(circle at 50% -15%, rgba(139,123,255,.16), transparent 42%); }
+.grid-glow { background-image: radial-gradient(circle at 50% -15%, rgba(50, 198, 180, .14), transparent 44%); }
 .chart-grid line { stroke: var(--grid); }
 .recharts-cartesian-axis-tick-value { fill: var(--muted); font-size: 11px; }
+
+/* INSIGHT uses a product-telemetry visual language, separate from the AI lab UI. */
+body:has(aside) aside {
+  background: linear-gradient(180deg, var(--sidebar-background), var(--panel)) !important;
+  border-color: var(--sidebar-border) !important;
+}
+body:has(aside) aside > div:first-child {
+  border-color: var(--sidebar-border) !important;
+  background: linear-gradient(110deg, rgba(50, 198, 180, .055), transparent 72%);
+}
+body:has(aside) aside > div:first-child > div:first-child {
+  border-radius: 13px;
+  background: linear-gradient(145deg, #45d5c2, #148c86) !important;
+  color: #062d2d !important;
+  box-shadow: 0 8px 24px rgba(20, 157, 145, .24);
+}
+body:has(aside) aside > div:nth-child(2) > div {
+  border-color: var(--sidebar-border) !important;
+  background: rgba(50, 198, 180, .055) !important;
+}
+body:has(aside) aside nav a {
+  border: 1px solid transparent;
+  border-radius: 10px !important;
+  transition: background-color .18s ease, border-color .18s ease, color .18s ease;
+}
+body:has(aside) aside nav a.bg-accent-soft {
+  border-color: rgba(50, 198, 180, .18) !important;
+  border-left: 3px solid var(--accent) !important;
+  padding-left: 9px !important;
+  background: linear-gradient(90deg, var(--accent-soft), rgba(50, 198, 180, .025)) !important;
+  color: var(--accent) !important;
+}
+body:has(aside) aside > div:last-child > div:first-child {
+  border: 1px solid rgba(50, 198, 180, .18);
+  background: linear-gradient(135deg, rgba(50, 198, 180, .12), rgba(50, 198, 180, .025)) !important;
+}
+body:has(aside) header.sticky {
+  border-color: var(--border) !important;
+  background: var(--header-background) !important;
+  box-shadow: 0 1px 0 rgba(50, 198, 180, .035);
+}
+body:has(aside) main h1 {
+  letter-spacing: -.045em;
+}
+body:has(aside) main section.surface {
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0, 12, 14, .08);
+}
+body:has(aside) main .bg-accent-soft {
+  color: var(--accent);
+}
+body:has(aside) main .recharts-area path[stroke="#8b7bff"],
+body:has(aside) main .recharts-line path[stroke="#8b7bff"] {
+  stroke: var(--chart-primary) !important;
+}
+body:has(aside) main .recharts-area path[stroke="#35c99a"],
+body:has(aside) main .recharts-line path[stroke="#35c99a"] {
+  stroke: var(--chart-secondary) !important;
+}
+body:has(aside) main stop[stop-color="#8b7bff"] {
+  stop-color: var(--chart-primary) !important;
+}
+body:has(aside) main .bg-gradient-to-r.from-violet-500.to-indigo-400 {
+  background-image: linear-gradient(90deg, var(--chart-primary), var(--chart-secondary)) !important;
+}
+
+/* Make the dashboard's initial data fetch read as an intentional loading state. */
+@keyframes insight-shimmer {
+  0% { background-position: 110% 0; }
+  100% { background-position: -110% 0; }
+}
+body:has(aside) main .grid > div.surface.h-32.animate-pulse {
+  position: relative;
+  overflow: hidden;
+  border-color: var(--border);
+  background: linear-gradient(110deg, var(--skeleton-base) 25%, var(--skeleton-highlight) 42%, var(--skeleton-base) 62%) !important;
+  background-size: 220% 100% !important;
+  animation: insight-shimmer 1.55s ease-in-out infinite !important;
+}
+body:has(aside) main .grid > div.surface.h-32.animate-pulse::before,
+body:has(aside) main .grid > div.surface.h-32.animate-pulse::after {
+  position: absolute;
+  left: 20px;
+  display: block;
+  content: "";
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(145, 170, 168, .24);
+}
+body:has(aside) main .grid > div.surface.h-32.animate-pulse::before {
+  top: 24px;
+  width: 34%;
+}
+body:has(aside) main .grid > div.surface.h-32.animate-pulse::after {
+  top: 53px;
+  width: 48%;
+  height: 20px;
+  border-radius: 7px;
+  background: rgba(145, 170, 168, .18);
+}
+@media (prefers-reduced-motion: reduce) {
+  body:has(aside) main .grid > div.surface.h-32.animate-pulse {
+    animation: none !important;
+  }
+}
