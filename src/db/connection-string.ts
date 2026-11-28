@@ -1,4 +1,4 @@
-const LEGACY_SSL_MODE = /([?&]sslmode=)(prefer|require|verify-ca)(?=(&|#|$)/i;
+const LEGACY_SSL_MODE = /([?&]sslmode=)(prefer|require|verify-ca)(?=[&#]|$)/i;
 
 /**
  * Make pg-connection-string's current TLS behavior explicit.
